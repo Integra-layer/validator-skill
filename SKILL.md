@@ -10,7 +10,7 @@ description: Set up, configure, and manage Integralayer blockchain validator nod
 | Property | Mainnet | Testnet |
 |----------|---------|---------|
 | Cosmos Chain ID | `integra-1` | `ormos-1` |
-| EVM Chain ID | `26217` | `26218` |
+| EVM Chain ID | `26217` (intended) / `262144` (on-chain*) | `26218` |
 | EVM RPC | `https://evm.integralayer.com` | `https://testnet-evm.integralayer.com` |
 | Cosmos RPC | `https://rpc.integralayer.com` | `https://testnet-rpc.integralayer.com` |
 | REST API | `https://api.integralayer.com` | `https://testnet-api.integralayer.com` |
@@ -68,9 +68,10 @@ curl -s https://rpc.integralayer.com/genesis | jq '.result.genesis' > ~/.intgd/c
 
 ### Cloud Provider Recommendations
 
+- **AWS**: m6i.xlarge 4vCPU / 16GB (~$140/mo) — battle-tested for validators
 - **DigitalOcean**: General Purpose 4vCPU / 16GB (~$96/mo)
-- **AWS**: m6i.xlarge 4vCPU / 16GB (~$140/mo)
-- **Hetzner**: CPX41 8vCPU / 16GB (~$28/mo)
+
+> **Warning**: Do NOT use Hetzner. Their ToS explicitly bans cryptocurrency nodes, and they have shut down 1000+ validators without warning.
 
 **Required ports**: 26656 (P2P), 26657 (RPC), 8545 (EVM RPC), 1317 (REST API)
 
@@ -191,6 +192,10 @@ These contracts are available at standard addresses on both networks:
 | Multicall3 | `0xcA11bde05977b3631167028862bE2a173976CA11` |
 | Permit2 | `0x000000000022D473030F116dDEE9F6B43aC78BA3` |
 | Safe Singleton Factory | `0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7` |
+
+## Known Issues
+
+- **EVM Chain ID mismatch (*)**: The intended EVM chain ID is `26217`, but the on-chain value (`eth_chainId`) returns `262144` (`0x40000`). This is a genesis misconfiguration. Use `262144` when configuring MetaMask/wallets until the team fixes it via governance.
 
 ## Troubleshooting
 
