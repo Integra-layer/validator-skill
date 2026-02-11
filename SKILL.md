@@ -10,7 +10,7 @@ description: Set up, configure, and manage Integralayer blockchain validator nod
 | Property | Mainnet | Testnet |
 |----------|---------|---------|
 | Cosmos Chain ID | `integra-1` | `ormos-1` |
-| EVM Chain ID | `26217` (intended) / `262144` (on-chain*) | `26218` |
+| EVM Chain ID | `26217` | `26218` |
 | EVM RPC | `https://evm.integralayer.com` | `https://testnet-evm.integralayer.com` |
 | Cosmos RPC | `https://rpc.integralayer.com` | `https://testnet-rpc.integralayer.com` |
 | REST API | `https://api.integralayer.com` | `https://testnet-api.integralayer.com` |
@@ -192,10 +192,6 @@ These contracts are available at standard addresses on both networks:
 | Multicall3 | `0xcA11bde05977b3631167028862bE2a173976CA11` |
 | Permit2 | `0x000000000022D473030F116dDEE9F6B43aC78BA3` |
 | Safe Singleton Factory | `0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7` |
-
-## Known Issues
-
-- **EVM Chain ID mismatch (*)**: The intended EVM chain ID is `26217`, but the on-chain value (`eth_chainId`) returns `262144` (`0x40000`). This is a genesis misconfiguration. Use `262144` when configuring MetaMask/wallets until the team fixes it via governance.
 
 ## Troubleshooting
 

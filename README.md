@@ -10,7 +10,7 @@ Run an [Integralayer](https://integralayer.com) validator node on **mainnet** (`
 | Property | Mainnet | Testnet |
 |----------|---------|---------|
 | Chain ID | `integra-1` | `ormos-1` |
-| EVM Chain ID | `26217` (intended) / `262144` (on-chain*) | `26218` |
+| EVM Chain ID | `26217` | `26218` |
 | Cosmos RPC | https://rpc.integralayer.com | https://testnet-rpc.integralayer.com |
 | EVM RPC | https://evm.integralayer.com | https://testnet-evm.integralayer.com |
 | REST API | https://api.integralayer.com | https://testnet-api.integralayer.com |
@@ -271,7 +271,6 @@ If deploying on AWS EC2, keep these gotchas in mind:
 - **NVMe device naming**: Nitro-based instances (m6i, c6i, etc.) expose EBS volumes as `/dev/nvme*`, NOT `/dev/xvdf`. Use `lsblk` to find the correct device name before formatting.
 - **User**: EC2 Ubuntu instances use `ubuntu` user, not `root`. Use `sudo` for all `intgd` operations.
 - **Security groups**: Open ports 26656 (P2P), 26657 (RPC), 8545 (EVM RPC), 1317 (REST API) in your security group.
-- **EVM Chain ID**: The on-chain EVM chain ID is `262144` (`0x40000`), not the documented `26217`. Use `262144` when configuring MetaMask until the team corrects this via governance.
 - **Token denom**: The token is **IRL** (base: `airl`), NOT `ILR`/`ailr`. Many early deployment scripts had this transposed.
 
 ## Troubleshooting
