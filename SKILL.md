@@ -18,19 +18,41 @@ description: Set up, configure, and manage Integralayer blockchain validator nod
 | Token | IRL (airl, 18 decimals) | oIRL (airl, 18 decimals) |
 | Binary | `intgd` | `intgd` |
 
-## Quick Start: Install Node
+## Quick Start: Docker (Recommended)
 
 ```bash
-# Download binary (Linux x86_64)
-wget https://github.com/Integra-layer/chain-core/releases/latest/download/intgd-linux-amd64
-chmod +x intgd-linux-amd64
-sudo mv intgd-linux-amd64 /usr/local/bin/intgd
+git clone https://github.com/Integra-layer/validator-skill.git
+cd validator-skill
+
+# Mainnet
+docker compose -f docker-compose.mainnet.yml up -d
+
+# Testnet
+docker compose -f docker-compose.testnet.yml up -d
+```
+
+The Docker setup handles binary compilation, genesis download, and peer discovery automatically.
+
+## Quick Start: Build from Source
+
+> **Important**: The `intgd` binary must be built from the [`Integra-layer/evm`](https://github.com/Integra-layer/evm) repository.
+> Do NOT use the pre-built binary from `chain-core` releases — it is a pre-upgrade binary that does not support the `integra-1` chain.
+
+```bash
+# Prerequisites: Go 1.25+, git, build-essential
+git clone https://github.com/Integra-layer/evm.git
+cd evm/integra
+CGO_ENABLED=1 go build -tags "netgo" \
+  -ldflags "-w -s -X github.com/cosmos/cosmos-sdk/version.Name=integra \
+    -X github.com/cosmos/cosmos-sdk/version.AppName=intgd" \
+  -trimpath -o intgd ./cmd/intgd
+sudo mv intgd /usr/local/bin/intgd
 
 # Initialize node
 intgd init <moniker> --chain-id integra-1  # mainnet
 intgd init <moniker> --chain-id ormos-1    # testnet
 
-# Download genesis
+# Download genesis (unmodified from RPC — hash must match network)
 curl -s https://rpc.integralayer.com/genesis | jq '.result.genesis' > ~/.intgd/config/genesis.json
 ```
 
@@ -115,7 +137,7 @@ After=network.target
 [Service]
 Type=simple
 User=root
-ExecStart=/usr/local/bin/intgd start --home /root/.intgd
+ExecStart=/usr/local/bin/intgd start --home /root/.intgd --chain-id integra-1
 Restart=on-failure
 RestartSec=3
 LimitNOFILE=65535
@@ -172,7 +194,8 @@ These contracts are available at standard addresses on both networks:
 
 ## Troubleshooting
 
-- **AppHash mismatch**: Binary version mismatch across validators. Ensure all nodes run the same `intgd` binary.
+- **CometBFT handshake failure / no peers**: Missing `--chain-id` flag on `intgd start`. This flag is **required** — without it, peer handshake silently fails.
+- **AppHash mismatch**: Binary version mismatch across validators. Ensure all nodes run the same `intgd` binary (built from `Integra-layer/evm`, NOT `chain-core` releases).
 - **Connection refused on 26657**: Check `laddr` in config.toml and firewall rules.
 - **EVM RPC not responding**: Ensure `[json-rpc] enable = true` in app.toml and port 8545 is open.
 - **Validator jailed**: Run unjail command above. Check `signing-info` for missed blocks.

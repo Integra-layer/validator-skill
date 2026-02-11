@@ -1,0 +1,22 @@
+# Binaries
+intgd
+intgd-*
+*.so
+
+# Environment
+.env
+.env.*
+
+# Build artifacts
+build/
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

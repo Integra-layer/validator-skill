@@ -1,0 +1,26 @@
+services:
+  integra-node:
+    build: .
+    container_name: integra-mainnet
+    environment:
+      - CHAIN_ID=integra-1
+      - MONIKER=my-integra-validator
+      - MIN_GAS_PRICES=0airl
+    ports:
+      - "26656:26656"  # P2P
+      - "26657:26657"  # RPC
+      - "8545:8545"    # EVM JSON-RPC
+      - "8546:8546"    # EVM WebSocket
+      - "1317:1317"    # REST API
+    volumes:
+      - integra-mainnet-data:/root/.intgd
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+volumes:
+  integra-mainnet-data:
+    driver: local
