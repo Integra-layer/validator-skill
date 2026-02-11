@@ -227,25 +227,44 @@ Once your node is fully synced (`catching_up: false`), create a validator on eit
 ```bash
 # If using Docker, prefix commands with: docker exec -it integra-mainnet
 
-# 1. Create a key
+# 1. Create a key (algo must be eth_secp256k1)
 intgd keys add validator --keyring-backend test
 
 # 2. Fund the address with IRL tokens (mainnet) or oIRL (testnet)
 
-# 3. Create the validator
-intgd tx staking create-validator \
-  --amount=1000000000000000000airl \
-  --pubkey=$(intgd tendermint show-validator) \
-  --moniker="your-moniker" \
+# 3. Get your validator pubkey
+intgd comet show-validator --home /root/.intgd
+
+# 4. Create validator.json (replace <PUBKEY> with output from step 3)
+cat > /root/validator.json << 'EOF'
+{
+  "pubkey": <PUBKEY_JSON_FROM_STEP_3>,
+  "amount": "100000000000000000000airl",
+  "moniker": "your-moniker",
+  "identity": "",
+  "website": "",
+  "security": "",
+  "details": "",
+  "commission-rate": "0.05",
+  "commission-max-rate": "0.20",
+  "commission-max-change-rate": "0.01",
+  "min-self-delegation": "1"
+}
+EOF
+
+# 5. Submit the create-validator tx (--gas-prices is required)
+intgd tx staking create-validator /root/validator.json \
+  --from=validator \
   --chain-id=integra-1 \
-  --commission-rate="0.05" \
-  --commission-max-rate="0.20" \
-  --commission-max-change-rate="0.01" \
-  --min-self-delegation="1" \
   --gas=auto \
   --gas-adjustment=1.5 \
-  --from=validator \
-  --keyring-backend=test
+  --gas-prices=1000000000airl \
+  --keyring-backend=test \
+  --home=/root/.intgd \
+  -y
+
+# 6. Verify
+curl -s 'http://localhost:1317/cosmos/staking/v1beta1/validators?status=BOND_STATUS_BONDED' | jq '.validators[] | {moniker: .description.moniker, tokens: .tokens}'
 ```
 
 For testnet, use `--chain-id=ormos-1`.

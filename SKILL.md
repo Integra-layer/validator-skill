@@ -114,20 +114,39 @@ ws-address = "0.0.0.0:8546"
 
 ## Create Validator
 
+> **Note**: Newer Cosmos SDK versions require a JSON file instead of CLI flags.
+
 ```bash
-intgd tx staking create-validator \
-  --amount=1000000000000000000airl \
-  --pubkey=$(intgd tendermint show-validator) \
-  --moniker="<your-moniker>" \
+# 1. Get your validator pubkey
+intgd comet show-validator --home /root/.intgd
+
+# 2. Create validator.json
+cat > /root/validator.json << 'EOF'
+{
+  "pubkey": {"@type":"/cosmos.crypto.ed25519.PubKey","key":"<YOUR_PUBKEY_FROM_STEP_1>"},
+  "amount": "100000000000000000000airl",
+  "moniker": "<your-moniker>",
+  "identity": "",
+  "website": "",
+  "security": "",
+  "details": "",
+  "commission-rate": "0.05",
+  "commission-max-rate": "0.20",
+  "commission-max-change-rate": "0.01",
+  "min-self-delegation": "1"
+}
+EOF
+
+# 3. Submit (--gas-prices is required)
+intgd tx staking create-validator /root/validator.json \
+  --from=validator \
   --chain-id=integra-1 \
-  --commission-rate="0.05" \
-  --commission-max-rate="0.20" \
-  --commission-max-change-rate="0.01" \
-  --min-self-delegation="1" \
   --gas=auto \
   --gas-adjustment=1.5 \
-  --from=validator \
-  --keyring-backend=test
+  --gas-prices=1000000000airl \
+  --keyring-backend=test \
+  --home=/root/.intgd \
+  -y
 ```
 
 ## Systemd Service
