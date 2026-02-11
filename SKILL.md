@@ -102,12 +102,15 @@ max_num_outbound_peers = 10
 # app.toml
 minimum-gas-prices = "0airl"
 pruning = "default"
+evm-chain-id = 26217
 
 [json-rpc]
 enable = true
 address = "0.0.0.0:8545"
 ws-address = "0.0.0.0:8546"
 ```
+
+> **Important**: The default `evm-chain-id` after `intgd init` is wrong (`262144`). You must set it to `26217` in `app.toml`.
 
 ## Create Validator
 
@@ -195,6 +198,7 @@ These contracts are available at standard addresses on both networks:
 
 ## Troubleshooting
 
+- **EVM chain ID wrong (262144 instead of 26217)**: The default `evm-chain-id` in `app.toml` is `262144`. Set it to `26217` and restart.
 - **CometBFT handshake failure / no peers**: Missing `--chain-id` flag on `intgd start`. This flag is **required** — without it, peer handshake silently fails.
 - **AppHash mismatch**: Binary version mismatch across validators. Ensure all nodes run the same `intgd` binary (built from `Integra-layer/evm`, NOT `chain-core` releases).
 - **Connection refused on 26657**: Check `laddr` in config.toml and firewall rules.

@@ -52,6 +52,9 @@ if [ ! -f "$HOME_DIR/config/config.toml" ]; then
     # Set minimum gas prices
     sed -i "s/minimum-gas-prices = \"\"/minimum-gas-prices = \"$MIN_GAS_PRICES\"/" "$HOME_DIR/config/app.toml" || true
 
+    # Fix EVM chain ID (default is wrong)
+    sed -i 's/evm-chain-id = 262144/evm-chain-id = 26217/' "$HOME_DIR/config/app.toml" || true
+
     echo "==> Initialization complete!"
 fi
 

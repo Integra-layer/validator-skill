@@ -168,6 +168,9 @@ sed -i 's/ws-address = "127.0.0.1:8546"/ws-address = "0.0.0.0:8546"/' ~/.intgd/c
 
 # Set minimum gas prices
 sed -i 's/minimum-gas-prices = ""/minimum-gas-prices = "0airl"/' ~/.intgd/config/app.toml
+
+# Fix EVM chain ID (default is wrong)
+sed -i 's/evm-chain-id = 262144/evm-chain-id = 26217/' ~/.intgd/config/app.toml
 ```
 
 ### 7. Set Up Systemd Service
@@ -271,12 +274,14 @@ If deploying on AWS EC2, keep these gotchas in mind:
 - **NVMe device naming**: Nitro-based instances (m6i, c6i, etc.) expose EBS volumes as `/dev/nvme*`, NOT `/dev/xvdf`. Use `lsblk` to find the correct device name before formatting.
 - **User**: EC2 Ubuntu instances use `ubuntu` user, not `root`. Use `sudo` for all `intgd` operations.
 - **Security groups**: Open ports 26656 (P2P), 26657 (RPC), 8545 (EVM RPC), 1317 (REST API) in your security group.
+- **EVM chain ID**: The default `evm-chain-id` in `app.toml` is `262144` (wrong). Fix it to `26217` after `intgd init`.
 - **Token denom**: The token is **IRL** (base: `airl`), NOT `ILR`/`ailr`. Many early deployment scripts had this transposed.
 
 ## Troubleshooting
 
 | Issue | Cause | Fix |
 |-------|-------|-----|
+| EVM chain ID wrong (262144) | Default `evm-chain-id` in app.toml | `sed -i 's/evm-chain-id = 262144/evm-chain-id = 26217/' ~/.intgd/config/app.toml` and restart |
 | No peers / handshake failure | Missing `--chain-id` flag on `intgd start` | Add `--chain-id integra-1` (or `ormos-1`) — **required** |
 | AppHash mismatch | Wrong binary | Must build from `Integra-layer/evm`, NOT `chain-core` releases |
 | Genesis hash mismatch | Modified genesis | Re-download from RPC: `curl -s $RPC/genesis \| jq '.result.genesis'` |
