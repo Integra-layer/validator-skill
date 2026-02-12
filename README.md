@@ -67,6 +67,7 @@ validator-skill/
 | Token | IRL (`airl`, 18 decimals) | oIRL (`airl`, 18 decimals) |
 | Cosmos RPC | https://rpc.integralayer.com | https://testnet-rpc.integralayer.com |
 | EVM RPC | https://evm.integralayer.com | https://testnet-evm.integralayer.com |
+| REST API | https://api.integralayer.com | https://testnet-api.integralayer.com |
 | Explorer | https://explorer.integralayer.com | https://testnet.explorer.integralayer.com |
 
 > **Important**: The `intgd` binary must be built from [`Integra-layer/evm`](https://github.com/Integra-layer/evm). Do NOT use pre-built binaries from `chain-core` releases.
