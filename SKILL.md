@@ -18,19 +18,41 @@ description: Set up, configure, and manage Integralayer blockchain validator nod
 | Token | IRL (airl, 18 decimals) | oIRL (airl, 18 decimals) |
 | Binary | `intgd` | `intgd` |
 
-## Quick Start: Install Node
+## Quick Start: Docker (Recommended)
 
 ```bash
-# Download binary (Linux x86_64)
-wget https://github.com/Integra-layer/chain-core/releases/latest/download/intgd-linux-amd64
-chmod +x intgd-linux-amd64
-sudo mv intgd-linux-amd64 /usr/local/bin/intgd
+git clone https://github.com/Integra-layer/validator-skill.git
+cd validator-skill
+
+# Mainnet
+docker compose -f docker-compose.mainnet.yml up -d
+
+# Testnet
+docker compose -f docker-compose.testnet.yml up -d
+```
+
+The Docker setup handles binary compilation, genesis download, and peer discovery automatically.
+
+## Quick Start: Build from Source
+
+> **Important**: The `intgd` binary must be built from the [`Integra-layer/evm`](https://github.com/Integra-layer/evm) repository.
+> Do NOT use the pre-built binary from `chain-core` releases — it is a pre-upgrade binary that does not support the `integra-1` chain.
+
+```bash
+# Prerequisites: Go 1.25+, git, build-essential
+git clone https://github.com/Integra-layer/evm.git
+cd evm/integra
+CGO_ENABLED=1 go build -tags "netgo" \
+  -ldflags "-w -s -X github.com/cosmos/cosmos-sdk/version.Name=integra \
+    -X github.com/cosmos/cosmos-sdk/version.AppName=intgd" \
+  -trimpath -o intgd ./cmd/intgd
+sudo mv intgd /usr/local/bin/intgd
 
 # Initialize node
 intgd init <moniker> --chain-id integra-1  # mainnet
 intgd init <moniker> --chain-id ormos-1    # testnet
 
-# Download genesis
+# Download genesis (unmodified from RPC — hash must match network)
 curl -s https://rpc.integralayer.com/genesis | jq '.result.genesis' > ~/.intgd/config/genesis.json
 ```
 
@@ -46,9 +68,10 @@ curl -s https://rpc.integralayer.com/genesis | jq '.result.genesis' > ~/.intgd/c
 
 ### Cloud Provider Recommendations
 
+- **AWS**: m6i.xlarge 4vCPU / 16GB (~$140/mo) — battle-tested for validators
 - **DigitalOcean**: General Purpose 4vCPU / 16GB (~$96/mo)
-- **AWS**: m6i.xlarge 4vCPU / 16GB (~$140/mo)
-- **Hetzner**: CPX41 8vCPU / 16GB (~$28/mo)
+
+> **Warning**: Do NOT use Hetzner. Their ToS explicitly bans cryptocurrency nodes, and they have shut down 1000+ validators without warning.
 
 **Required ports**: 26656 (P2P), 26657 (RPC), 8545 (EVM RPC), 1317 (REST API)
 
@@ -79,6 +102,7 @@ max_num_outbound_peers = 10
 # app.toml
 minimum-gas-prices = "0airl"
 pruning = "default"
+evm-chain-id = 26217
 
 [json-rpc]
 enable = true
@@ -86,22 +110,43 @@ address = "0.0.0.0:8545"
 ws-address = "0.0.0.0:8546"
 ```
 
+> **Important**: The default `evm-chain-id` after `intgd init` is wrong (`262144`). You must set it to `26217` in `app.toml`.
+
 ## Create Validator
 
+> **Note**: Newer Cosmos SDK versions require a JSON file instead of CLI flags.
+
 ```bash
-intgd tx staking create-validator \
-  --amount=1000000000000000000airl \
-  --pubkey=$(intgd tendermint show-validator) \
-  --moniker="<your-moniker>" \
+# 1. Get your validator pubkey
+intgd comet show-validator --home /root/.intgd
+
+# 2. Create validator.json
+cat > /root/validator.json << 'EOF'
+{
+  "pubkey": {"@type":"/cosmos.crypto.ed25519.PubKey","key":"<YOUR_PUBKEY_FROM_STEP_1>"},
+  "amount": "100000000000000000000airl",
+  "moniker": "<your-moniker>",
+  "identity": "",
+  "website": "",
+  "security": "",
+  "details": "",
+  "commission-rate": "0.05",
+  "commission-max-rate": "0.20",
+  "commission-max-change-rate": "0.01",
+  "min-self-delegation": "1"
+}
+EOF
+
+# 3. Submit (--gas-prices is required)
+intgd tx staking create-validator /root/validator.json \
+  --from=validator \
   --chain-id=integra-1 \
-  --commission-rate="0.05" \
-  --commission-max-rate="0.20" \
-  --commission-max-change-rate="0.01" \
-  --min-self-delegation="1" \
   --gas=auto \
   --gas-adjustment=1.5 \
-  --from=validator \
-  --keyring-backend=test
+  --gas-prices=1000000000airl \
+  --keyring-backend=test \
+  --home=/root/.intgd \
+  -y
 ```
 
 ## Systemd Service
@@ -115,7 +160,7 @@ After=network.target
 [Service]
 Type=simple
 User=root
-ExecStart=/usr/local/bin/intgd start --home /root/.intgd
+ExecStart=/usr/local/bin/intgd start --home /root/.intgd --chain-id integra-1
 Restart=on-failure
 RestartSec=3
 LimitNOFILE=65535
@@ -172,7 +217,9 @@ These contracts are available at standard addresses on both networks:
 
 ## Troubleshooting
 
-- **AppHash mismatch**: Binary version mismatch across validators. Ensure all nodes run the same `intgd` binary.
+- **EVM chain ID wrong (262144 instead of 26217)**: The default `evm-chain-id` in `app.toml` is `262144`. Set it to `26217` and restart.
+- **CometBFT handshake failure / no peers**: Missing `--chain-id` flag on `intgd start`. This flag is **required** — without it, peer handshake silently fails.
+- **AppHash mismatch**: Binary version mismatch across validators. Ensure all nodes run the same `intgd` binary (built from `Integra-layer/evm`, NOT `chain-core` releases).
 - **Connection refused on 26657**: Check `laddr` in config.toml and firewall rules.
 - **EVM RPC not responding**: Ensure `[json-rpc] enable = true` in app.toml and port 8545 is open.
 - **Validator jailed**: Run unjail command above. Check `signing-info` for missed blocks.
