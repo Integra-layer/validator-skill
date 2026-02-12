@@ -1,0 +1,110 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { CHAIN } from "@/lib/chain-config";
+
+export interface RpcCheck {
+  name: string;
+  method: string;
+  status: "ok" | "error" | "loading";
+  latencyMs: number | null;
+  value: string | null;
+  error: string | null;
+}
+
+const RPC_CHECKS = [
+  { name: "Chain ID", method: "eth_chainId", params: [] },
+  { name: "Block Number", method: "eth_blockNumber", params: [] },
+  { name: "Gas Price", method: "eth_gasPrice", params: [] },
+  { name: "Net Version", method: "net_version", params: [] },
+  { name: "Client Version", method: "web3_clientVersion", params: [] },
+  { name: "Syncing", method: "eth_syncing", params: [] },
+  { name: "Peer Count", method: "net_peerCount", params: [] },
+  { name: "Fee History", method: "eth_feeHistory", params: ["0x1", "latest", []] },
+];
+
+async function runCheck(method: string, params: unknown[]): Promise<{ value: string; latencyMs: number }> {
+  const start = performance.now();
+  const res = await fetch("/api/rpc", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+    signal: AbortSignal.timeout(8000),
+  });
+  const latencyMs = Math.round(performance.now() - start);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  const raw = data.result;
+  // Format the value for display
+  if (raw === false) return { value: "Not syncing", latencyMs };
+  if (raw === null || raw === undefined) return { value: "null", latencyMs };
+  if (typeof raw === "object") {
+    if (raw.oldestBlock) return { value: `oldestBlock: ${parseInt(raw.oldestBlock, 16)}`, latencyMs };
+    return { value: JSON.stringify(raw).slice(0, 60), latencyMs };
+  }
+  if (typeof raw === "string" && raw.startsWith("0x")) {
+    const num = parseInt(raw, 16);
+    if (!isNaN(num) && num < 1e15) return { value: `${raw} (${num.toLocaleString()})`, latencyMs };
+  }
+  return { value: String(raw), latencyMs };
+}
+
+export function useRpcHealth(intervalMs = 30000) {
+  const [checks, setChecks] = useState<RpcCheck[]>(
+    RPC_CHECKS.map((c) => ({ name: c.name, method: c.method, status: "loading", latencyMs: null, value: null, error: null }))
+  );
+  const [cometBft, setCometBft] = useState<{ status: "ok" | "error" | "loading"; latencyMs: number | null; value: string | null }>({
+    status: "loading", latencyMs: null, value: null,
+  });
+
+  const refresh = useCallback(async () => {
+    // Run all EVM RPC checks in parallel
+    const results = await Promise.allSettled(
+      RPC_CHECKS.map(async (check, i) => {
+        try {
+          const result = await runCheck(check.method, check.params);
+          return { ...check, status: "ok" as const, latencyMs: result.latencyMs, value: result.value, error: null };
+        } catch (e: any) {
+          return { ...check, status: "error" as const, latencyMs: null, value: null, error: e.message || "Failed" };
+        }
+      })
+    );
+
+    setChecks(
+      results.map((r, i) =>
+        r.status === "fulfilled"
+          ? r.value
+          : { ...RPC_CHECKS[i], name: RPC_CHECKS[i].name, method: RPC_CHECKS[i].method, status: "error" as const, latencyMs: null, value: null, error: "Unexpected error" }
+      )
+    );
+
+    // CometBFT check
+    try {
+      const start = performance.now();
+      const res = await fetch(`${CHAIN.cometBftUrl}/status`, { signal: AbortSignal.timeout(8000) });
+      const latencyMs = Math.round(performance.now() - start);
+      const data = await res.json();
+      const height = data.result?.sync_info?.latest_block_height;
+      setCometBft({ status: "ok", latencyMs, value: height ? `Block #${parseInt(height, 10).toLocaleString()}` : "OK" });
+    } catch {
+      try {
+        const start = performance.now();
+        const res = await fetch("/api/status", { signal: AbortSignal.timeout(8000) });
+        const latencyMs = Math.round(performance.now() - start);
+        const data = await res.json();
+        const height = data.result?.sync_info?.latest_block_height;
+        setCometBft({ status: "ok", latencyMs, value: height ? `Block #${parseInt(height, 10).toLocaleString()} (proxied)` : "OK (proxied)" });
+      } catch {
+        setCometBft({ status: "error", latencyMs: null, value: null });
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    refresh();
+    const id = setInterval(refresh, intervalMs);
+    return () => clearInterval(id);
+  }, [refresh, intervalMs]);
+
+  return { checks, cometBft, refresh };
+}

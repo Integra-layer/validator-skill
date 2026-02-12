@@ -1,0 +1,19 @@
+{
+  "name": "integralayer-validator",
+  "description": "Deploy, operate, and monitor Integralayer blockchain validator nodes. Covers Docker and bare-metal deployments, day-to-day validator operations, Caddy reverse proxy, and scaffolding validator monitoring pages.",
+  "version": "1.0.0",
+  "author": {
+    "name": "adamboudj"
+  },
+  "license": "MIT",
+  "keywords": [
+    "integralayer",
+    "validator",
+    "cosmos",
+    "evm",
+    "blockchain",
+    "docker",
+    "caddy"
+  ],
+  "skills": "./skills/"
+}

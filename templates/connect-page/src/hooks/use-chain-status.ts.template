@@ -1,0 +1,75 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { CHAIN } from "@/lib/chain-config";
+
+interface ChainStatus {
+  blockHeight: number | null;
+  peers: number | null;
+  catching_up: boolean | null;
+  error: string | null;
+  loading: boolean;
+}
+
+export function useChainStatus(intervalMs = 5000): ChainStatus {
+  const [status, setStatus] = useState<ChainStatus>({
+    blockHeight: null,
+    peers: null,
+    catching_up: null,
+    error: null,
+    loading: true,
+  });
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function fetchStatus() {
+      try {
+        // Try direct CometBFT first, fall back to API route proxy
+        let data: any;
+        try {
+          const res = await fetch(`${CHAIN.cometBftUrl}/status`, {
+            signal: AbortSignal.timeout(4000),
+          });
+          data = await res.json();
+        } catch {
+          const res = await fetch("/api/status", {
+            signal: AbortSignal.timeout(4000),
+          });
+          data = await res.json();
+        }
+
+        if (!mounted) return;
+
+        const syncInfo = data.result?.sync_info;
+        const netInfo = data.result?.node_info;
+
+        setStatus({
+          blockHeight: syncInfo
+            ? parseInt(syncInfo.latest_block_height, 10)
+            : null,
+          peers: data.peers ?? null,
+          catching_up: syncInfo?.catching_up ?? null,
+          error: null,
+          loading: false,
+        });
+      } catch (e: any) {
+        if (!mounted) return;
+        setStatus((prev) => ({
+          ...prev,
+          error: e.message || "Failed to fetch status",
+          loading: false,
+        }));
+      }
+    }
+
+    fetchStatus();
+    const id = setInterval(fetchStatus, intervalMs);
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
+  }, [intervalMs]);
+
+  return status;
+}

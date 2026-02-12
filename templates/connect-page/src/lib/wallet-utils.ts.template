@@ -1,0 +1,110 @@
+import { toast } from "sonner";
+import { EVM_CHAIN_PARAMS, KEPLR_CHAIN_INFO } from "./chain-config";
+
+type WalletResult = { success: boolean; error?: string };
+
+/** Race a promise against a timeout */
+function withTimeout<T>(promise: Promise<T>, ms: number, msg: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(msg)), ms)),
+  ]);
+}
+
+/** Add network to MetaMask via EIP-3085 */
+export async function addToMetaMask(): Promise<WalletResult> {
+  const ethereum = (window as any).ethereum;
+  if (!ethereum?.isMetaMask) {
+    return { success: false, error: "MetaMask not detected. Please install MetaMask." };
+  }
+
+  // Try switch first (works if chain already exists & wallet is unlocked)
+  try {
+    await withTimeout(
+      ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: EVM_CHAIN_PARAMS.chainId }],
+      }),
+      8000,
+      "timeout",
+    );
+    toast.success("Switched to network!");
+    return { success: true };
+  } catch (e: any) {
+    // 4902 = chain not found — need to add it
+    if (e.code === 4902) {
+      try {
+        await withTimeout(
+          ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [EVM_CHAIN_PARAMS],
+          }),
+          15000,
+          "timeout",
+        );
+        return { success: true };
+      } catch (addErr: any) {
+        if (addErr.code === 4001) return { success: false, error: "User rejected the request" };
+      }
+    }
+    if (e.code === 4001) return { success: false, error: "User rejected the request" };
+  }
+
+  // Fallback: try addChain directly (some MetaMask versions need this)
+  try {
+    await withTimeout(
+      ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [EVM_CHAIN_PARAMS],
+      }),
+      15000,
+      "timeout",
+    );
+    return { success: true };
+  } catch (e: any) {
+    if (e.code === 4001) return { success: false, error: "User rejected the request" };
+  }
+
+  // Everything failed — show manual instructions
+  showManualInstructions();
+  return { success: false, error: "Open MetaMask and add the network manually" };
+}
+
+/** Add network to OKX Wallet via EIP-3085 */
+export async function addToOKX(): Promise<WalletResult> {
+  const okxwallet = (window as any).okxwallet;
+  if (!okxwallet) {
+    return { success: false, error: "OKX Wallet not detected. Please install OKX Wallet." };
+  }
+  try {
+    await okxwallet.request({
+      method: "wallet_addEthereumChain",
+      params: [EVM_CHAIN_PARAMS],
+    });
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e.message || "Failed to add network" };
+  }
+}
+
+/** Suggest chain to Keplr */
+export async function addToKeplr(): Promise<WalletResult> {
+  const keplr = (window as any).keplr;
+  if (!keplr) {
+    return { success: false, error: "Keplr not detected. Please install Keplr." };
+  }
+  try {
+    await keplr.experimentalSuggestChain(KEPLR_CHAIN_INFO);
+    await keplr.enable(KEPLR_CHAIN_INFO.chainId);
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e.message || "Failed to suggest chain" };
+  }
+}
+
+function showManualInstructions() {
+  toast.error("Automatic setup failed. Add the network manually:", {
+    duration: 15000,
+    description: `Network: ${EVM_CHAIN_PARAMS.chainName} | Chain ID: ${EVM_CHAIN_PARAMS.chainId} | RPC: ${EVM_CHAIN_PARAMS.rpcUrls[0]} | Currency: ${EVM_CHAIN_PARAMS.nativeCurrency.symbol}`,
+  });
+}

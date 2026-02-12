@@ -1,0 +1,87 @@
+"use client";
+
+import { useChainStatus } from "@/hooks/use-chain-status";
+import { CHAIN } from "@/lib/chain-config";
+import { WsStatus } from "./ws-status";
+import { Activity, Box, Server, AlertTriangle } from "lucide-react";
+
+export function ChainStatus() {
+  const { blockHeight, catching_up, error, loading } = useChainStatus();
+
+  return (
+    <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Activity className="h-5 w-5 text-brand-orange" />
+          <h2 className="text-lg font-semibold text-text-primary">Live Chain Status</h2>
+        </div>
+        <WsStatus />
+      </div>
+
+      <div className="mt-5 grid gap-4 sm:grid-cols-3">
+        {/* Block Height */}
+        <div className="rounded-xl bg-surface-secondary border border-border-light p-4">
+          <div className="flex items-center gap-2">
+            <Box className="h-4 w-4 text-text-muted" />
+            <p className="text-sm font-medium text-text-secondary">Block Height</p>
+          </div>
+          <p className="mt-2 text-2xl font-bold tabular-nums text-text-primary">
+            {loading ? (
+              <span className="inline-block h-7 w-28 animate-pulse rounded bg-surface-tertiary" />
+            ) : error ? (
+              "—"
+            ) : (
+              blockHeight?.toLocaleString() ?? "—"
+            )}
+          </p>
+        </div>
+
+        {/* Sync Status */}
+        <div className="rounded-xl bg-surface-secondary border border-border-light p-4">
+          <div className="flex items-center gap-2">
+            <Activity className="h-4 w-4 text-text-muted" />
+            <p className="text-sm font-medium text-text-secondary">Sync Status</p>
+          </div>
+          <div className="mt-2">
+            {loading ? (
+              <span className="inline-block h-7 w-20 animate-pulse rounded bg-surface-tertiary" />
+            ) : error ? (
+              <span className="inline-flex items-center gap-2 text-lg font-semibold">
+                <span className="h-2.5 w-2.5 rounded-full bg-status-red" />
+                <span className="text-status-red">Offline</span>
+              </span>
+            ) : catching_up ? (
+              <span className="inline-flex items-center gap-2 text-lg font-semibold">
+                <span className="h-2.5 w-2.5 rounded-full bg-status-yellow" />
+                <span className="text-status-yellow">Catching Up</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-2 text-lg font-semibold">
+                <span className="h-2.5 w-2.5 rounded-full bg-status-green animate-pulse-dot" />
+                <span className="text-status-green">Synced</span>
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Node */}
+        <div className="rounded-xl bg-surface-secondary border border-border-light p-4">
+          <div className="flex items-center gap-2">
+            <Server className="h-4 w-4 text-text-muted" />
+            <p className="text-sm font-medium text-text-secondary">Validator Node</p>
+          </div>
+          <p className="mt-2 font-mono text-sm text-text-primary break-all">
+            {CHAIN.dns}
+          </p>
+        </div>
+      </div>
+
+      {error && (
+        <div className="mt-4 flex items-center gap-2 rounded-lg bg-status-red-bg border border-status-red/20 px-4 py-2.5 text-sm text-status-red">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          Connection error: {error}
+        </div>
+      )}
+    </div>
+  );
+}

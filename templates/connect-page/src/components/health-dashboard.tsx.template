@@ -1,0 +1,121 @@
+"use client";
+
+import { useState, useCallback } from "react";
+import { useRpcHealth } from "@/hooks/use-rpc-health";
+import { CheckCircle, XCircle, Loader2, RefreshCw, Zap, Globe } from "lucide-react";
+
+function StatusIcon({ status }: { status: "ok" | "error" | "loading" }) {
+  if (status === "loading") return <Loader2 className="h-4 w-4 animate-spin text-text-muted" />;
+  if (status === "ok") return <CheckCircle className="h-4 w-4 text-status-green" />;
+  return <XCircle className="h-4 w-4 text-status-red" />;
+}
+
+function LatencyBadge({ ms }: { ms: number | null }) {
+  if (ms === null) return null;
+  const color = ms < 200 ? "text-status-green" : ms < 500 ? "text-status-yellow" : "text-status-red";
+  return <span className={`font-mono text-[11px] ${color}`}>{ms}ms</span>;
+}
+
+export function HealthDashboard() {
+  const { checks, cometBft, refresh } = useRpcHealth();
+  const [spinning, setSpinning] = useState(false);
+
+  const allOk = checks.every((c) => c.status === "ok") && cometBft.status === "ok";
+  const anyLoading = checks.some((c) => c.status === "loading") || cometBft.status === "loading";
+  const errorCount = checks.filter((c) => c.status === "error").length + (cometBft.status === "error" ? 1 : 0);
+
+  const handleRefresh = useCallback(() => {
+    setSpinning(true);
+    refresh();
+    // Keep spinning for at least 600ms so the animation is visible
+    setTimeout(() => setSpinning(false), 600);
+  }, [refresh]);
+
+  return (
+    <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Zap className="h-5 w-5 text-brand-orange" />
+          <h2 className="text-lg font-semibold text-text-primary">RPC Health Check</h2>
+        </div>
+        <div className="flex items-center gap-3">
+          {/* Summary badge */}
+          {anyLoading ? (
+            <span className="text-xs text-text-muted">Checking...</span>
+          ) : allOk ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-status-green/30 bg-status-green-bg px-2.5 py-1 text-xs font-medium text-status-green">
+              <span className="h-1.5 w-1.5 rounded-full bg-status-green animate-pulse-dot" />
+              All Systems Operational
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-status-red/30 bg-status-red-bg px-2.5 py-1 text-xs font-medium text-status-red">
+              {errorCount} {errorCount === 1 ? "Issue" : "Issues"} Detected
+            </span>
+          )}
+          <button
+            onClick={handleRefresh}
+            disabled={spinning || anyLoading}
+            className="rounded-lg p-1.5 text-text-muted hover:text-brand-orange hover:bg-brand-orange/5 active:scale-90 transition-all duration-150 disabled:opacity-50"
+            title="Refresh all checks"
+          >
+            <RefreshCw className={`h-4 w-4 transition-transform duration-500 ${spinning || anyLoading ? "animate-spin" : ""}`} />
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-5 space-y-1">
+        {/* EVM RPC Checks */}
+        <div className="mb-3">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Zap className="h-3.5 w-3.5 text-text-muted" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-text-muted">EVM JSON-RPC</span>
+          </div>
+          <div className="overflow-hidden rounded-xl border border-border-light">
+            {checks.map((check, i) => (
+              <div
+                key={check.method}
+                className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-surface-secondary ${
+                  i < checks.length - 1 ? "border-b border-border-light" : ""
+                }`}
+              >
+                <StatusIcon status={check.status} />
+                <span className="w-32 font-medium text-text-primary">{check.name}</span>
+                <code className="hidden sm:inline text-xs text-text-muted font-mono">{check.method}</code>
+                <span className="ml-auto flex items-center gap-3">
+                  {check.value && (
+                    <code className="text-xs text-text-secondary font-mono max-w-[200px] truncate">{check.value}</code>
+                  )}
+                  {check.error && (
+                    <span className="text-xs text-status-red max-w-[200px] truncate">{check.error}</span>
+                  )}
+                  <LatencyBadge ms={check.latencyMs} />
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CometBFT Check */}
+        <div>
+          <div className="flex items-center gap-1.5 mb-2">
+            <Globe className="h-3.5 w-3.5 text-text-muted" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-text-muted">CometBFT</span>
+          </div>
+          <div className="overflow-hidden rounded-xl border border-border-light">
+            <div className="flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-surface-secondary">
+              <StatusIcon status={cometBft.status} />
+              <span className="w-32 font-medium text-text-primary">Node Status</span>
+              <code className="hidden sm:inline text-xs text-text-muted font-mono">/status</code>
+              <span className="ml-auto flex items-center gap-3">
+                {cometBft.value && (
+                  <code className="text-xs text-text-secondary font-mono">{cometBft.value}</code>
+                )}
+                <LatencyBadge ms={cometBft.latencyMs} />
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

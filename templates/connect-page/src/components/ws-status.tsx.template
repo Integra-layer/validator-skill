@@ -1,0 +1,44 @@
+"use client";
+
+import { useWebSocket, type WsMode } from "@/hooks/use-websocket";
+import { Radio } from "lucide-react";
+
+const MODE_STYLES: Record<WsMode, { border: string; bg: string; text: string; label: string }> = {
+  ws: {
+    border: "border-status-green/30",
+    bg: "bg-status-green-bg",
+    text: "text-status-green",
+    label: "WS Live",
+  },
+  polling: {
+    border: "border-status-yellow/30",
+    bg: "bg-status-yellow-bg",
+    text: "text-status-yellow",
+    label: "Polling",
+  },
+  offline: {
+    border: "border-status-red/30",
+    bg: "bg-status-red-bg",
+    text: "text-status-red",
+    label: "Offline",
+  },
+};
+
+export function WsStatus() {
+  const { mode, latestBlock } = useWebSocket();
+  const style = MODE_STYLES[mode];
+
+  return (
+    <div
+      className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${style.border} ${style.bg} ${style.text}`}
+    >
+      <Radio className={`h-3 w-3 ${mode !== "offline" ? "animate-pulse-dot" : ""}`} />
+      <span>{style.label}</span>
+      {latestBlock && (
+        <span className="font-mono text-[11px] opacity-80">
+          #{latestBlock.toLocaleString()}
+        </span>
+      )}
+    </div>
+  );
+}

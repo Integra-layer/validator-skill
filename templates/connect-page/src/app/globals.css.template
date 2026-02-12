@@ -1,0 +1,60 @@
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Kode+Mono:wght@400;700&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Montserrat", system-ui, sans-serif;
+  --font-mono: "Kode Mono", monospace;
+
+  --color-brand-orange: #f97316;
+  --color-brand-orange-light: #fb923c;
+  --color-brand-orange-dark: #ea580c;
+  --color-brand-coral: #ff6b6b;
+  --color-brand-dark: #0a0a0f;
+  --color-brand-dark-card: #111118;
+
+  --color-surface: #ffffff;
+  --color-surface-secondary: #f8fafc;
+  --color-surface-tertiary: #f1f5f9;
+  --color-border: #e2e8f0;
+  --color-border-light: #f1f5f9;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94a3b8;
+
+  --color-status-green: #22c55e;
+  --color-status-yellow: #eab308;
+  --color-status-red: #ef4444;
+  --color-status-green-bg: #f0fdf4;
+  --color-status-red-bg: #fef2f2;
+  --color-status-yellow-bg: #fefce8;
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background-color: var(--color-brand-orange);
+  color: white;
+}
+
+/* Smooth gradient background for hero */
+.hero-gradient {
+  background: linear-gradient(135deg, #fff7ed 0%, #fff1e6 25%, #fef3e2 50%, #fdf4ff 75%, #f8fafc 100%);
+}
+
+.hero-pattern {
+  background-image: radial-gradient(circle at 25% 25%, rgba(249, 115, 22, 0.05) 0%, transparent 50%),
+                    radial-gradient(circle at 75% 75%, rgba(255, 107, 107, 0.05) 0%, transparent 50%);
+}
+
+/* Animated pulse for live indicators */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.5); }
+}
+.animate-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}

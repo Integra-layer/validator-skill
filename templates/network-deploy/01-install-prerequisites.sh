@@ -36,9 +36,9 @@ apt-get install -y \
     nano \
     vim
 
-# Install Go (required version 1.22+)
-echo "[3/6] Installing Go 1.22..."
-GO_VERSION="1.22.5"
+# Install Go (required version 1.25+)
+echo "[3/6] Installing Go 1.25..."
+GO_VERSION="1.25.5"
 wget -q "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz"
 rm -rf /usr/local/go
 tar -C /usr/local -xzf "go${GO_VERSION}.linux-amd64.tar.gz"

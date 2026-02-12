@@ -4,19 +4,19 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-User=root
-Group=root
+User=integra
+Group=integra
 Type=simple
 
 # Working directory
-WorkingDirectory=/root
+WorkingDirectory=/home/integra
 
 # Environment variables
-Environment="HOME=/root"
+Environment="HOME=/home/integra"
 
 # Start command
 ExecStart=/usr/local/bin/intgd start \
-    --home /root/.intgd \
+    --home /home/integra/.intgd \
     --chain-id integra-1 \
     --minimum-gas-prices 0.000001airl \
     --json-rpc.api eth,txpool,personal,net,debug,web3 \

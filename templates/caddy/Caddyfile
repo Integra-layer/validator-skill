@@ -1,0 +1,52 @@
+# Caddyfile — Reverse proxy for Integralayer validator / RPC node
+# Replace "your-domain.com" with your actual domain.
+# Caddy handles TLS certificates automatically via Let's Encrypt.
+#
+# Install: https://caddyserver.com/docs/install
+# Run:     sudo caddy run --config /etc/caddy/Caddyfile
+# Reload:  sudo caddy reload --config /etc/caddy/Caddyfile
+
+your-domain.com {
+	# EVM JSON-RPC
+	handle_path /rpc {
+		reverse_proxy localhost:8545
+	}
+
+	# EVM WebSocket
+	handle_path /ws {
+		reverse_proxy localhost:8546 {
+			header_up -Origin
+		}
+	}
+
+	# CometBFT RPC
+	handle_path /cometbft/* {
+		reverse_proxy localhost:26657
+	}
+	handle_path /cometbft {
+		reverse_proxy localhost:26657
+	}
+
+	# REST API (Cosmos SDK)
+	handle_path /rest/* {
+		reverse_proxy localhost:1317
+	}
+	handle_path /rest {
+		reverse_proxy localhost:1317
+	}
+
+	# gRPC (optional — requires gRPC-web or HTTP/2 clients)
+	# handle_path /grpc/* {
+	#     reverse_proxy h2c://localhost:9090
+	# }
+
+	# CORS headers for cross-origin access
+	header {
+		Access-Control-Allow-Origin *
+		Access-Control-Allow-Methods "GET, POST, OPTIONS"
+		Access-Control-Allow-Headers "Content-Type"
+	}
+
+	# Default response — status page
+	respond "Integra Validator Node" 200
+}
