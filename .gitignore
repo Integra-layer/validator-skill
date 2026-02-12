@@ -20,3 +20,13 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# AI tooling (ephemeral, regenerate with Claude Code)
+.omc/
+.cursor/
+.cursorignore
+.cursorindexingignore
+.cline/
+memory-bank/
+.aider*
+.copilot/
