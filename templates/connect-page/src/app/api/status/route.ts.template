@@ -1,0 +1,19 @@
+import { CHAIN } from "@/lib/chain-config";
+import { NextResponse } from "next/server";
+
+/** CORS proxy fallback for CometBFT /status when direct browser access is blocked */
+export async function GET() {
+  try {
+    const res = await fetch(`${CHAIN.cometBftUrl}/status`, {
+      signal: AbortSignal.timeout(5000),
+      next: { revalidate: 3 },
+    });
+    const data = await res.json();
+    return NextResponse.json(data);
+  } catch (e: any) {
+    return NextResponse.json(
+      { error: e.message || "Failed to fetch status" },
+      { status: 502 }
+    );
+  }
+}

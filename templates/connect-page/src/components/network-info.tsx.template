@@ -1,0 +1,42 @@
+"use client";
+
+import { CHAIN } from "@/lib/chain-config";
+import { CopyButton } from "./copy-button";
+
+const rows = [
+  { label: "Network", value: CHAIN.chainName, copyable: false },
+  { label: "Chain ID (Cosmos)", value: CHAIN.chainId, copyable: true },
+  { label: "Chain ID (EVM)", value: `${CHAIN.evmChainId} (${CHAIN.evmChainIdHex})`, copyable: true, copyValue: String(CHAIN.evmChainId) },
+  { label: "Currency", value: `${CHAIN.denom} (${CHAIN.minDenom})`, copyable: false },
+  { label: "Decimals", value: String(CHAIN.decimals), copyable: false },
+  { label: "EVM RPC", value: CHAIN.rpcUrl, copyable: true },
+  { label: "WebSocket", value: CHAIN.wsUrl, copyable: true },
+  { label: "CometBFT RPC", value: CHAIN.cometBftUrl, copyable: true },
+  { label: "REST API", value: `https://${CHAIN.dns}/rest`, copyable: true },
+  { label: "Bech32 Prefix", value: CHAIN.bech32Prefix, copyable: true },
+  { label: "Validator", value: CHAIN.validatorAddress, copyable: true },
+];
+
+export function NetworkInfo() {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+      <table className="w-full text-sm">
+        <tbody>
+          {rows.map(({ label, value, copyable, copyValue }) => (
+            <tr key={label} className="border-b border-border-light last:border-0 transition-colors hover:bg-surface-secondary">
+              <td className="px-5 py-3.5 font-medium text-text-secondary whitespace-nowrap w-40">
+                {label}
+              </td>
+              <td className="px-5 py-3.5 text-text-primary">
+                <span className="inline-flex items-center gap-1.5 break-all">
+                  <code className="font-mono text-xs">{value}</code>
+                  {copyable && <CopyButton text={copyValue ?? value} />}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}

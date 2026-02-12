@@ -1,0 +1,183 @@
+import { WalletButtons } from "@/components/wallet-buttons";
+import { NetworkInfo } from "@/components/network-info";
+import { ChainStatus } from "@/components/chain-status";
+import { HealthDashboard } from "@/components/health-dashboard";
+import { IntegraLogo } from "@/components/integra-logo";
+import { CopyButton } from "@/components/copy-button";
+import { CHAIN } from "@/lib/chain-config";
+import { ArrowDown, Terminal, Rocket, Book } from "lucide-react";
+
+export default function Home() {
+  return (
+    <div className="min-h-screen">
+      {/* Hero */}
+      <header className="hero-gradient hero-pattern relative overflow-hidden">
+        <div className="mx-auto max-w-4xl px-4 pb-16 pt-20 sm:pt-28 text-center">
+          <div className="flex justify-center">
+            <IntegraLogo className="h-12 text-text-primary" />
+          </div>
+          <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-text-primary sm:text-5xl">
+            Connect to{" "}
+            <span className="bg-gradient-to-r from-brand-orange to-brand-coral bg-clip-text text-transparent">
+              {{CHAIN_NAME}}
+            </span>
+          </h1>
+          <p className="mx-auto mt-4 max-w-xl text-lg text-text-secondary">
+            Add the {{CHAIN_NAME}} mainnet to your wallet in one click.
+            Live chain status, RPC health monitoring, and developer quickstart.
+          </p>
+          <a
+            href="#wallets"
+            className="mt-8 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-brand-orange to-brand-orange-dark px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-orange/25 transition-all hover:shadow-xl hover:shadow-brand-orange/30 hover:scale-[1.02] active:scale-[0.98]"
+          >
+            Add to Wallet
+            <ArrowDown className="h-4 w-4" />
+          </a>
+
+          {/* Quick stats */}
+          <div className="mx-auto mt-12 grid max-w-lg grid-cols-3 gap-6">
+            <div>
+              <p className="text-2xl font-bold text-text-primary">{CHAIN.denom}</p>
+              <p className="mt-1 text-xs text-text-muted">Native Token</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-text-primary">{CHAIN.evmChainId}</p>
+              <p className="mt-1 text-xs text-text-muted">EVM Chain ID</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-text-primary">{CHAIN.decimals}</p>
+              <p className="mt-1 text-xs text-text-muted">Decimals</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-4xl px-4 pb-24">
+        {/* Wallets */}
+        <section id="wallets" className="-mt-2 scroll-mt-8">
+          <SectionHeader icon={<Rocket className="h-4 w-4" />} title="Add to Wallet" />
+          <WalletButtons />
+        </section>
+
+        {/* Live Status */}
+        <section className="mt-14">
+          <ChainStatus />
+        </section>
+
+        {/* Health Dashboard */}
+        <section className="mt-8">
+          <HealthDashboard />
+        </section>
+
+        {/* Network Details */}
+        <section className="mt-14">
+          <SectionHeader icon={<Book className="h-4 w-4" />} title="Network Configuration" />
+          <NetworkInfo />
+        </section>
+
+        {/* Quick Start */}
+        <section className="mt-14">
+          <SectionHeader icon={<Terminal className="h-4 w-4" />} title="Developer Quickstart" />
+          <div className="space-y-4">
+            <QuickStartCard
+              step={1}
+              title="Add the network"
+              description="Click one of the wallet buttons above to auto-configure MetaMask, Keplr, or OKX."
+            />
+            <QuickStartCard
+              step={2}
+              title="Query via JSON-RPC"
+              code={`curl -X POST ${CHAIN.rpcUrl} \\
+  -H "Content-Type: application/json" \\
+  -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'`}
+            />
+            <QuickStartCard
+              step={3}
+              title="Connect with ethers.js"
+              code={`import { JsonRpcProvider } from "ethers";
+const provider = new JsonRpcProvider("${CHAIN.rpcUrl}", ${CHAIN.evmChainId});
+const block = await provider.getBlockNumber();
+console.log("Latest block:", block);`}
+            />
+            <QuickStartCard
+              step={4}
+              title="Deploy with Hardhat"
+              description={`Add ${CHAIN.chainName} to your hardhat.config.ts networks:`}
+              code={`${CHAIN.chainId}: {
+  url: "${CHAIN.rpcUrl}",
+  chainId: ${CHAIN.evmChainId},
+  accounts: [process.env.PRIVATE_KEY],
+}`}
+            />
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-border bg-surface-secondary">
+        <div className="mx-auto max-w-4xl px-4 py-8">
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
+            <div className="flex items-center gap-3">
+              <IntegraLogo className="h-6 text-text-muted" />
+              <span className="text-sm text-text-muted">Mainnet</span>
+            </div>
+            <div className="text-center sm:text-right">
+              <p className="text-sm text-text-secondary">
+                Validator operated by <span className="font-semibold text-text-primary">{{OPERATOR_NAME}}</span>
+              </p>
+              <p className="mt-1 flex items-center justify-center gap-1 sm:justify-end">
+                <code className="font-mono text-xs text-text-muted">{CHAIN.validatorAddress}</code>
+                <CopyButton text={CHAIN.validatorAddress} />
+              </p>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }) {
+  return (
+    <div className="mb-5 flex items-center gap-2">
+      <span className="text-brand-orange">{icon}</span>
+      <h2 className="text-sm font-semibold uppercase tracking-wider text-text-secondary">{title}</h2>
+    </div>
+  );
+}
+
+function QuickStartCard({
+  step,
+  title,
+  description,
+  code,
+}: {
+  step: number;
+  title: string;
+  description?: string;
+  code?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
+      <div className="flex items-start gap-3">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-orange/10 text-xs font-bold text-brand-orange">
+          {step}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-text-primary">{title}</p>
+          {description && <p className="mt-1 text-sm text-text-secondary">{description}</p>}
+          {code && (
+            <div className="group relative mt-3">
+              <pre className="overflow-x-auto rounded-xl bg-brand-dark p-4 font-mono text-xs leading-relaxed text-gray-300">
+                {code}
+              </pre>
+              <div className="absolute right-2 top-2">
+                <CopyButton text={code} className="text-gray-500 hover:text-white hover:bg-white/10" />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

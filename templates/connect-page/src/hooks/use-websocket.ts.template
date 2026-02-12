@@ -1,0 +1,108 @@
+"use client";
+
+import { useState, useEffect, useRef, useCallback } from "react";
+import { CHAIN } from "@/lib/chain-config";
+
+export type WsMode = "ws" | "polling" | "offline";
+
+interface WsState {
+  mode: WsMode;
+  latestBlock: number | null;
+  error: string | null;
+}
+
+async function pollBlockNumber(): Promise<number> {
+  const res = await fetch("/api/rpc", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_blockNumber", params: [] }),
+    signal: AbortSignal.timeout(8000),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return parseInt(data.result, 16);
+}
+
+export function useWebSocket(): WsState {
+  const [state, setState] = useState<WsState>({
+    mode: "offline",
+    latestBlock: null,
+    error: null,
+  });
+  const wsRef = useRef<WebSocket | null>(null);
+  const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startPolling = useCallback(() => {
+    if (pollTimer.current) return;
+    // Immediate first poll
+    pollBlockNumber()
+      .then((block) => setState({ mode: "polling", latestBlock: block, error: null }))
+      .catch(() => setState((prev) => ({ ...prev, mode: "polling" })));
+    // Then every 5s
+    pollTimer.current = setInterval(async () => {
+      try {
+        const block = await pollBlockNumber();
+        setState({ mode: "polling", latestBlock: block, error: null });
+      } catch {
+        // Keep polling mode, just skip this tick
+      }
+    }, 5000);
+  }, []);
+
+  const connect = useCallback(() => {
+    try {
+      const ws = new WebSocket(CHAIN.wsUrl);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        setState((prev) => ({ ...prev, mode: "ws", error: null }));
+        ws.send(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            method: "eth_subscribe",
+            params: ["newHeads"],
+          })
+        );
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          const blockHex =
+            data.params?.result?.number ?? data.result?.number;
+          if (blockHex) {
+            setState((prev) => ({
+              ...prev,
+              latestBlock: parseInt(blockHex, 16),
+            }));
+          }
+        } catch {
+          // Ignore parse errors on non-block messages
+        }
+      };
+
+      ws.onclose = () => {
+        // WS closed — fall back to polling permanently
+        startPolling();
+      };
+
+      ws.onerror = () => {
+        ws.close();
+      };
+    } catch {
+      // WS constructor failed (e.g. blocked by browser) — fall back to polling
+      startPolling();
+    }
+  }, [startPolling]);
+
+  useEffect(() => {
+    connect();
+    return () => {
+      if (pollTimer.current) clearInterval(pollTimer.current);
+      wsRef.current?.close();
+    };
+  }, [connect]);
+
+  return state;
+}

@@ -1,0 +1,84 @@
+export const CHAIN = {
+  // Cosmos
+  chainId: "{{CHAIN_ID}}",
+  chainName: "{{CHAIN_NAME}}",
+  bech32Prefix: "{{BECH32_PREFIX}}",
+
+  // EVM
+  evmChainId: {{EVM_CHAIN_ID}},
+  evmChainIdHex: "{{EVM_CHAIN_ID_HEX}}",
+
+  // Endpoints (HTTPS via Caddy reverse proxy)
+  rpcUrl: "{{RPC_URL}}",
+  wsUrl: "{{WS_URL}}",
+  cometBftUrl: "{{COMETBFT_URL}}",
+
+  // Currency
+  denom: "{{DENOM}}",
+  minDenom: "{{MIN_DENOM}}",
+  decimals: {{DECIMALS}},
+  coinGeckoId: "",
+
+  // Explorer
+  blockExplorerUrl: "",
+
+  // Validator
+  validatorAddress: "{{VALIDATOR_ADDRESS}}",
+  nodeIp: "{{NODE_IP}}",
+  dns: "{{DNS}}",
+} as const;
+
+/** EIP-3085 params for wallet_addEthereumChain */
+export const EVM_CHAIN_PARAMS = {
+  chainId: CHAIN.evmChainIdHex,
+  chainName: CHAIN.chainName,
+  nativeCurrency: {
+    name: CHAIN.denom,
+    symbol: CHAIN.denom,
+    decimals: CHAIN.decimals,
+  },
+  rpcUrls: [CHAIN.rpcUrl],
+  blockExplorerUrls: CHAIN.blockExplorerUrl ? [CHAIN.blockExplorerUrl] : [],
+} as const;
+
+/** Keplr suggestChain config */
+export const KEPLR_CHAIN_INFO = {
+  chainId: CHAIN.chainId,
+  chainName: CHAIN.chainName,
+  rpc: CHAIN.cometBftUrl,
+  rest: `https://${CHAIN.dns}/rest`,
+  bip44: { coinType: 60 },
+  bech32Config: {
+    bech32PrefixAccAddr: CHAIN.bech32Prefix,
+    bech32PrefixAccPub: `${CHAIN.bech32Prefix}pub`,
+    bech32PrefixValAddr: `${CHAIN.bech32Prefix}valoper`,
+    bech32PrefixValPub: `${CHAIN.bech32Prefix}valoperpub`,
+    bech32PrefixConsAddr: `${CHAIN.bech32Prefix}valcons`,
+    bech32PrefixConsPub: `${CHAIN.bech32Prefix}valconspub`,
+  },
+  currencies: [
+    {
+      coinDenom: CHAIN.denom,
+      coinMinimalDenom: CHAIN.minDenom,
+      coinDecimals: CHAIN.decimals,
+    },
+  ],
+  feeCurrencies: [
+    {
+      coinDenom: CHAIN.denom,
+      coinMinimalDenom: CHAIN.minDenom,
+      coinDecimals: CHAIN.decimals,
+      gasPriceStep: { low: 0.01, average: 0.025, high: 0.04 },
+    },
+  ],
+  stakeCurrency: {
+    coinDenom: CHAIN.denom,
+    coinMinimalDenom: CHAIN.minDenom,
+    coinDecimals: CHAIN.decimals,
+  },
+  features: ["eth-address-gen", "eth-key-sign"],
+  evm: {
+    chainId: CHAIN.evmChainId,
+    rpc: CHAIN.rpcUrl,
+  },
+} as const;

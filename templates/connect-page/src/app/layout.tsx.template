@@ -1,0 +1,39 @@
+import type { Metadata } from "next";
+import { Toaster } from "sonner";
+import "./globals.css";
+
+export const metadata: Metadata = {
+  title: "{{PAGE_TITLE}} — Add {{CHAIN_NAME}} to Your Wallet",
+  description:
+    "Connect to the {{CHAIN_NAME}} blockchain. One-click wallet setup for MetaMask, Keplr, and OKX. Live chain status, RPC health monitoring, and developer quickstart.",
+  keywords: ["{{CHAIN_NAME}}", "blockchain", "wallet", "MetaMask", "Keplr", "OKX", "EVM", "Cosmos", "{{DENOM}}"],
+  openGraph: {
+    title: "{{PAGE_TITLE}} — Add {{CHAIN_NAME}} to Your Wallet",
+    description: "One-click wallet setup for {{CHAIN_NAME}} mainnet. Live chain status and RPC health monitoring.",
+    type: "website",
+    siteName: "{{PAGE_TITLE}}",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "{{PAGE_TITLE}}",
+    description: "Add {{CHAIN_NAME}} to your wallet in one click. Live chain status dashboard.",
+  },
+  icons: {
+    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect rx='20' width='100' height='100' fill='%23f97316'/><text x='50' y='72' font-size='60' text-anchor='middle' fill='white' font-family='system-ui'>I</text></svg>",
+  },
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en">
+      <body className="min-h-screen antialiased">
+        {children}
+        <Toaster position="top-center" richColors />
+      </body>
+    </html>
+  );
+}
