@@ -7,14 +7,12 @@
 FROM golang:1.25-bookworm AS builder
 
 ARG TARGETARCH
-ARG EVM_COMMIT=eab463c
+ARG EVM_BRANCH=main
 
 RUN apt-get update && apt-get install -y git build-essential && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
-RUN git clone https://github.com/Integra-layer/evm.git && \
-    cd evm && \
-    git checkout ${EVM_COMMIT}
+RUN git clone --branch ${EVM_BRANCH} --single-branch https://github.com/Integra-layer/evm.git
 
 WORKDIR /src/evm/integra
 RUN CGO_ENABLED=1 go build \
@@ -23,7 +21,7 @@ RUN CGO_ENABLED=1 go build \
       -X github.com/cosmos/cosmos-sdk/version.Name=integra \
       -X github.com/cosmos/cosmos-sdk/version.AppName=intgd \
       -X github.com/cosmos/cosmos-sdk/version.Version=1.0.0 \
-      -X github.com/cosmos/cosmos-sdk/version.Commit=${EVM_COMMIT}" \
+      -X github.com/cosmos/cosmos-sdk/version.Commit=$(git rev-parse --short HEAD)" \
     -trimpath \
     -o /build/intgd ./cmd/intgd
 
