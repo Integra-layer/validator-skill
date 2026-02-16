@@ -12,8 +12,8 @@ Day-to-day operational commands for managing an Integralayer validator node. Thi
 Throughout this skill:
 - `HOME` refers to the intgd home directory (e.g., `/root/.intgd` or `/home/integra/.intgd`)
 - `KEY_NAME` is the key alias (typically `validator`)
-- Mainnet chain ID: `integra-1`
-- Testnet chain ID: `ormos-1`
+- Mainnet chain ID: `integra-1` (EVM chain ID: `26217`)
+- Testnet chain ID: `integra-testnet-1` (EVM chain ID: `26218`)
 - Token denom: `airl` (18 decimals; 1 IRL = `1000000000000000000airl`)
 - `--keyring-backend=test` is used for all signing operations
 - `--gas-prices=1000000000airl` is required for transaction submission
@@ -121,7 +121,7 @@ intgd tx staking delegate <integravaloper_address> 10000000000000000000airl \
   --home=$HOME \
   -y
 
-# Testnet variant: --chain-id=ormos-1
+# Testnet variant: --chain-id=integra-testnet-1
 ```
 
 ### Redelegate
@@ -217,7 +217,7 @@ intgd tx slashing unjail \
   --home=$HOME \
   -y
 
-# Testnet variant: --chain-id=ormos-1
+# Testnet variant: --chain-id=integra-testnet-1
 ```
 
 Common jail reasons:
@@ -508,7 +508,7 @@ All transaction commands follow this pattern:
 ```bash
 intgd tx <module> <action> [args] \
   --from=$KEY_NAME \
-  --chain-id=integra-1 \          # or ormos-1 for testnet
+  --chain-id=integra-1 \          # or integra-testnet-1 for testnet
   --gas=auto \
   --gas-adjustment=1.5 \
   --gas-prices=1000000000airl \    # REQUIRED
