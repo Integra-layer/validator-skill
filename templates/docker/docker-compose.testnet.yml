@@ -3,7 +3,7 @@ services:
     build: .
     container_name: integra-testnet
     environment:
-      - CHAIN_ID=ormos-1
+      - CHAIN_ID=integra-testnet-1
       - MONIKER=my-integra-testnet
       - MIN_GAS_PRICES=0airl
     ports:

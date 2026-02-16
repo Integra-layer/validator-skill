@@ -76,7 +76,7 @@ intgd tx bank send <from> <to> 1000000000000000000ailr --chain-id integra-1
    ```bash
    # Verify genesis chain ID
    jq '.chain_id' ~/.intgd/config/genesis.json
-   # Should return "integra-1" (mainnet) or "ormos-1" (testnet)
+   # Should return "integra-1" (mainnet) or "integra-testnet-1" (testnet)
    ```
 
 4. **Clock skew**: CometBFT requires roughly synchronized time.

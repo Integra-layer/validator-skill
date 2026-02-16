@@ -62,7 +62,7 @@ validator-skill/
 
 | Property | Mainnet | Testnet |
 |----------|---------|---------|
-| Chain ID | `integra-1` | `ormos-1` |
+| Chain ID | `integra-1` | `integra-testnet-1` |
 | EVM Chain ID | `26217` | `26218` |
 | Token | IRL (`airl`, 18 decimals) | oIRL (`airl`, 18 decimals) |
 | Cosmos RPC | https://rpc.integralayer.com | https://testnet-rpc.integralayer.com |
@@ -74,7 +74,7 @@ validator-skill/
 
 ## Known Gotchas
 
-- **EVM Chain ID**: Default after `intgd init` is `262144` (wrong). Must be set to `26217`.
+- **EVM Chain ID**: Default after `intgd init` is `262144` (wrong). Must be set to `26217` (mainnet) or `26218` (testnet).
 - **--chain-id flag**: Required on `intgd start` — peer handshake silently fails without it.
 - **Token denom**: It's **IRL** / `airl`, NOT `ILR` / `ailr`.
 - **Hetzner**: Do NOT use — their ToS bans cryptocurrency nodes.

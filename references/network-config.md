@@ -6,7 +6,7 @@ Canonical chain parameters, endpoints, and configuration settings for the Integr
 
 | Parameter | Mainnet | Testnet |
 |---|---|---|
-| Chain ID (Cosmos) | `integra-1` | `ormos-1` |
+| Chain ID (Cosmos) | `integra-1` | `integra-testnet-1` |
 | Chain ID (EVM) | `26217` | `26218` |
 | Binary | `intgd` | `intgd` |
 | Token | IRL | IRL |

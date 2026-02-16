@@ -24,7 +24,7 @@ Works on any provider: AWS, DigitalOcean, Hetzner alternatives, bare metal, etc.
 
 | Property | Mainnet | Testnet |
 |----------|---------|---------|
-| Chain ID | `integra-1` | `ormos-1` |
+| Chain ID | `integra-1` | `integra-testnet-1` |
 | EVM Chain ID | `26217` | `26218` |
 | RPC | `https://rpc.integralayer.com` | `https://testnet-rpc.integralayer.com` |
 | Token | IRL (`airl`) | oIRL (`airl`) |
@@ -48,7 +48,7 @@ First build compiles `intgd` from source (~5 min). The container automatically:
 1. Initializes the node
 2. Downloads genesis from network RPC
 3. Discovers and connects to peers
-4. Fixes the EVM chain ID (262144 → 26217)
+4. Fixes the EVM chain ID (262144 → 26217 mainnet / 26218 testnet)
 5. Starts syncing blocks
 
 ### Step 2: Customize (Optional)
@@ -150,7 +150,7 @@ intgd version
 ### Step 3: Initialize Node
 
 ```bash
-CHAIN_ID="integra-1"  # or "ormos-1" for testnet
+CHAIN_ID="integra-1"  # or "integra-testnet-1" for testnet
 RPC="https://rpc.integralayer.com"  # or testnet-rpc for testnet
 
 intgd init "my-validator" --chain-id "$CHAIN_ID"
@@ -180,6 +180,7 @@ sed -i 's/ws-address = "127.0.0.1:8546"/ws-address = "0.0.0.0:8546"/' ~/.intgd/c
 sed -i 's/minimum-gas-prices = ""/minimum-gas-prices = "0airl"/' ~/.intgd/config/app.toml
 
 # FIX EVM chain ID (default is WRONG)
+# Use 26217 for mainnet, 26218 for testnet
 sed -i 's/evm-chain-id = 262144/evm-chain-id = 26217/' ~/.intgd/config/app.toml
 ```
 
@@ -299,7 +300,7 @@ curl -s 'http://localhost:1317/cosmos/staking/v1beta1/validators?status=BOND_STA
 
 | Issue | Fix |
 |-------|-----|
-| EVM chain ID 262144 | Must be 26217 — fix in app.toml |
+| EVM chain ID 262144 | Must be 26217 (mainnet) or 26218 (testnet) in app.toml |
 | No peers / handshake failure | Add `--chain-id` to `intgd start` |
 | Wrong binary | Build from `Integra-layer/evm`, NOT `chain-core` |
 | Token denom confusion | It's **IRL** / `airl`, NOT ILR/ailr |

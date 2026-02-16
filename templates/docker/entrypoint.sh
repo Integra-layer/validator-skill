@@ -9,10 +9,12 @@ MIN_GAS_PRICES="${MIN_GAS_PRICES:-0airl}"
 # Select RPC endpoint based on network
 if [ "$CHAIN_ID" = "integra-1" ]; then
     RPC="https://rpc.integralayer.com"
-elif [ "$CHAIN_ID" = "ormos-1" ]; then
+    EVM_CHAIN_ID=26217
+elif [ "$CHAIN_ID" = "integra-testnet-1" ]; then
     RPC="https://testnet-rpc.integralayer.com"
+    EVM_CHAIN_ID=26218
 else
-    echo "ERROR: Unknown CHAIN_ID '$CHAIN_ID'. Use 'integra-1' (mainnet) or 'ormos-1' (testnet)."
+    echo "ERROR: Unknown CHAIN_ID '$CHAIN_ID'. Use 'integra-1' (mainnet) or 'integra-testnet-1' (testnet)."
     exit 1
 fi
 
@@ -52,8 +54,8 @@ if [ ! -f "$HOME_DIR/config/config.toml" ]; then
     # Set minimum gas prices
     sed -i "s/minimum-gas-prices = \"\"/minimum-gas-prices = \"$MIN_GAS_PRICES\"/" "$HOME_DIR/config/app.toml" || true
 
-    # Fix EVM chain ID (default is wrong)
-    sed -i 's/evm-chain-id = 262144/evm-chain-id = 26217/' "$HOME_DIR/config/app.toml" || true
+    # Fix EVM chain ID (default 262144 is wrong)
+    sed -i "s/evm-chain-id = 262144/evm-chain-id = $EVM_CHAIN_ID/" "$HOME_DIR/config/app.toml" || true
 
     echo "==> Initialization complete!"
 fi
