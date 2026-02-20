@@ -49,7 +49,8 @@ First build compiles `intgd` from source (~5 min). The container automatically:
 2. Downloads genesis from network RPC
 3. Discovers and connects to peers
 4. Fixes the EVM chain ID (262144 → 26217 mainnet / 26218 testnet)
-5. Starts syncing blocks
+5. Configures state sync (downloads recent snapshot instead of replaying from genesis)
+6. Starts syncing blocks
 
 ### Step 2: Customize (Optional)
 
@@ -64,6 +65,7 @@ MONIKER=my-validator CHAIN_ID=integra-1 docker compose -f templates/docker/docke
 | `CHAIN_ID` | `integra-1` | Chain ID |
 | `MONIKER` | `my-integra-validator` | Node display name |
 | `MIN_GAS_PRICES` | `0airl` | Minimum gas price |
+| `STATE_SYNC` | `true` | Use state sync instead of block replay |
 | `PEERS_OVERRIDE` | — | Manual peer list |
 
 ### Step 3: Wait for Sync
