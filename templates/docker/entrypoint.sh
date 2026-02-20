@@ -5,6 +5,7 @@ CHAIN_ID="${CHAIN_ID:-integra-1}"
 MONIKER="${MONIKER:-my-integra-validator}"
 HOME_DIR="/root/.intgd"
 MIN_GAS_PRICES="${MIN_GAS_PRICES:-0airl}"
+STATE_SYNC="${STATE_SYNC:-true}"
 
 # Select RPC endpoint based on network
 if [ "$CHAIN_ID" = "integra-1" ]; then
@@ -56,6 +57,25 @@ if [ ! -f "$HOME_DIR/config/config.toml" ]; then
 
     # Fix EVM chain ID (default 262144 is wrong)
     sed -i "s/evm-chain-id = 262144/evm-chain-id = $EVM_CHAIN_ID/" "$HOME_DIR/config/app.toml" || true
+
+    # Configure state sync (enabled by default — block replay fails if binary differs from genesis version)
+    if [ "$STATE_SYNC" = "true" ]; then
+        echo "==> Configuring state sync from $RPC ..."
+        LATEST_HEIGHT=$(curl -sf "$RPC/status" | jq -r '.result.sync_info.latest_block_height')
+        TRUST_HEIGHT=$((LATEST_HEIGHT - 2000))
+        TRUST_HASH=$(curl -sf "$RPC/block?height=$TRUST_HEIGHT" | jq -r '.result.block_id.hash')
+
+        if [ -n "$TRUST_HASH" ] && [ "$TRUST_HASH" != "null" ]; then
+            sed -i 's/enable = false/enable = true/' "$HOME_DIR/config/config.toml"
+            sed -i "s|rpc_servers = \"\"|rpc_servers = \"${RPC}:443,${RPC}:443\"|" "$HOME_DIR/config/config.toml"
+            sed -i "s/trust_height = 0/trust_height = $TRUST_HEIGHT/" "$HOME_DIR/config/config.toml"
+            sed -i "s/trust_hash = \"\"/trust_hash = \"$TRUST_HASH\"/" "$HOME_DIR/config/config.toml"
+            sed -i 's/trust_period = "168h0m0s"/trust_period = "336h0m0s"/' "$HOME_DIR/config/config.toml"
+            echo "==> State sync enabled (trust_height=$TRUST_HEIGHT, trust_hash=$TRUST_HASH)"
+        else
+            echo "==> Warning: Could not fetch trust hash, falling back to block sync"
+        fi
+    fi
 
     echo "==> Initialization complete!"
 fi

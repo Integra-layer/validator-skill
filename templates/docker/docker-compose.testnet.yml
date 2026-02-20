@@ -6,6 +6,7 @@ services:
       - CHAIN_ID=integra-testnet-1
       - MONIKER=my-integra-testnet
       - MIN_GAS_PRICES=0airl
+      - STATE_SYNC=true
     ports:
       - "26656:26656"  # P2P
       - "26657:26657"  # RPC
