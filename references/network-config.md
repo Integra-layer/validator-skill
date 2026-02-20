@@ -11,10 +11,13 @@ Canonical chain parameters, endpoints, and configuration settings for the Integr
 | Binary | `intgd` | `intgd` |
 | Token | IRL | IRL |
 | Smallest denom | `airl` (18 decimals) | `airl` (18 decimals) |
-| Cosmos RPC | https://rpc.integralayer.com | https://testnet-rpc.integralayer.com |
-| EVM RPC | https://evm.integralayer.com | https://testnet-evm.integralayer.com |
-| REST API | https://api.integralayer.com | https://testnet-api.integralayer.com |
+| Cosmos RPC | https://rpc.integralayer.com | https://ormos.integralayer.com/cometbft |
+| EVM RPC | https://evm.integralayer.com | https://ormos.integralayer.com/rpc |
+| REST API | https://api.integralayer.com | https://ormos.integralayer.com/rest |
+| EVM WebSocket | wss://ws.integralayer.com | wss://ormos.integralayer.com/ws |
+| Cosmos WebSocket | wss://rpc.integralayer.com/websocket | wss://ormos.integralayer.com/cometbft/websocket |
 | Explorer | https://explorer.integralayer.com | https://testnet.explorer.integralayer.com |
+| Blockscout (EVM) | https://blockscout.integralayer.com | https://testnet.blockscout.integralayer.com |
 
 > **CRITICAL**: The token is **IRL** / **airl**. NOT ILR/ailr. This is a common source of confusion.
 
@@ -140,7 +143,7 @@ These contracts are available at their canonical addresses on the Integralayer E
 curl -L https://rpc.integralayer.com/genesis | jq '.result.genesis' > ~/.intgd/config/genesis.json
 
 # Download testnet genesis
-curl -L https://testnet-rpc.integralayer.com/genesis | jq '.result.genesis' > ~/.intgd/config/genesis.json
+curl -L https://ormos.integralayer.com/cometbft/genesis | jq '.result.genesis' > ~/.intgd/config/genesis.json
 
 # Verify genesis hash
 sha256sum ~/.intgd/config/genesis.json

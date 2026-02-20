@@ -12,7 +12,7 @@ if [ "$CHAIN_ID" = "integra-1" ]; then
     RPC="https://rpc.integralayer.com"
     EVM_CHAIN_ID=26217
 elif [ "$CHAIN_ID" = "integra-testnet-1" ]; then
-    RPC="https://testnet-rpc.integralayer.com"
+    RPC="https://ormos.integralayer.com/cometbft"
     EVM_CHAIN_ID=26218
 else
     echo "ERROR: Unknown CHAIN_ID '$CHAIN_ID'. Use 'integra-1' (mainnet) or 'integra-testnet-1' (testnet)."

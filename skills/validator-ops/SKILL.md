@@ -484,7 +484,7 @@ rm -rf /home/integra/.intgd/data
 curl -sL https://rpc.integralayer.com/genesis | jq '.result.genesis' > /home/integra/.intgd/config/genesis.json
 
 # --- Testnet ---
-# curl -sL https://testnet-rpc.integralayer.com/genesis | jq '.result.genesis' > /home/integra/.intgd/config/genesis.json
+# curl -sL https://ormos.integralayer.com/cometbft/genesis | jq '.result.genesis' > /home/integra/.intgd/config/genesis.json
 
 # Verify genesis chain_id
 jq '.chain_id' /home/integra/.intgd/config/genesis.json

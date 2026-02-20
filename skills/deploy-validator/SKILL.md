@@ -26,7 +26,7 @@ Works on any provider: AWS, DigitalOcean, Hetzner alternatives, bare metal, etc.
 |----------|---------|---------|
 | Chain ID | `integra-1` | `integra-testnet-1` |
 | EVM Chain ID | `26217` | `26218` |
-| RPC | `https://rpc.integralayer.com` | `https://testnet-rpc.integralayer.com` |
+| RPC | `https://rpc.integralayer.com` | `https://ormos.integralayer.com/cometbft` |
 | Token | IRL (`airl`) | oIRL (`airl`) |
 
 ## Option A: Docker (Recommended)

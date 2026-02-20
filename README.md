@@ -65,10 +65,12 @@ validator-skill/
 | Chain ID | `integra-1` | `integra-testnet-1` |
 | EVM Chain ID | `26217` | `26218` |
 | Token | IRL (`airl`, 18 decimals) | oIRL (`airl`, 18 decimals) |
-| Cosmos RPC | https://rpc.integralayer.com | https://testnet-rpc.integralayer.com |
-| EVM RPC | https://evm.integralayer.com | https://testnet-evm.integralayer.com |
-| REST API | https://api.integralayer.com | https://testnet-api.integralayer.com |
+| Cosmos RPC | https://rpc.integralayer.com | https://ormos.integralayer.com/cometbft |
+| EVM RPC | https://evm.integralayer.com | https://ormos.integralayer.com/rpc |
+| REST API | https://api.integralayer.com | https://ormos.integralayer.com/rest |
+| EVM WebSocket | wss://ws.integralayer.com | wss://ormos.integralayer.com/ws |
 | Explorer | https://explorer.integralayer.com | https://testnet.explorer.integralayer.com |
+| Blockscout (EVM) | https://blockscout.integralayer.com | https://testnet.blockscout.integralayer.com |
 
 > **Important**: The `intgd` binary must be built from [`Integra-layer/evm`](https://github.com/Integra-layer/evm). Do NOT use pre-built binaries from `chain-core` releases.
 
