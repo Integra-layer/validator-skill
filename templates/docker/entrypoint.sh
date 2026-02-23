@@ -8,11 +8,15 @@ MIN_GAS_PRICES="${MIN_GAS_PRICES:-0airl}"
 STATE_SYNC="${STATE_SYNC:-true}"
 
 # Select RPC endpoint based on network
+# RPC = path-based proxy for genesis/peer queries (supports /genesis, /net_info, etc.)
+# STATE_SYNC_RPC = direct host:port for CometBFT state sync light client (no path prefix)
 if [ "$CHAIN_ID" = "integra-1" ]; then
     RPC="https://rpc.integralayer.com"
+    STATE_SYNC_RPC="https://rpc.integralayer.com:443"
     EVM_CHAIN_ID=26217
 elif [ "$CHAIN_ID" = "integra-testnet-1" ]; then
     RPC="https://ormos.integralayer.com/cometbft"
+    STATE_SYNC_RPC="http://167.71.173.21:26657,http://143.198.25.105:26657"
     EVM_CHAIN_ID=26218
 else
     echo "ERROR: Unknown CHAIN_ID '$CHAIN_ID'. Use 'integra-1' (mainnet) or 'integra-testnet-1' (testnet)."
@@ -67,7 +71,7 @@ if [ ! -f "$HOME_DIR/config/config.toml" ]; then
 
         if [ -n "$TRUST_HASH" ] && [ "$TRUST_HASH" != "null" ]; then
             sed -i 's/enable = false/enable = true/' "$HOME_DIR/config/config.toml"
-            sed -i "s|rpc_servers = \"\"|rpc_servers = \"${RPC}:443,${RPC}:443\"|" "$HOME_DIR/config/config.toml"
+            sed -i "s|rpc_servers = \"\"|rpc_servers = \"${STATE_SYNC_RPC}\"|" "$HOME_DIR/config/config.toml"
             sed -i "s/trust_height = 0/trust_height = $TRUST_HEIGHT/" "$HOME_DIR/config/config.toml"
             sed -i "s/trust_hash = \"\"/trust_hash = \"$TRUST_HASH\"/" "$HOME_DIR/config/config.toml"
             sed -i 's/trust_period = "168h0m0s"/trust_period = "336h0m0s"/' "$HOME_DIR/config/config.toml"
