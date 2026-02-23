@@ -4,15 +4,23 @@ set -e
 CHAIN_ID="${CHAIN_ID:-integra-1}"
 MONIKER="${MONIKER:-my-integra-validator}"
 HOME_DIR="/root/.intgd"
-MIN_GAS_PRICES="${MIN_GAS_PRICES:-0airl}"
 STATE_SYNC="${STATE_SYNC:-true}"
+FORCE_INIT="${FORCE_INIT:-false}"
+
+# Set sensible gas price defaults per network
+if [ "$CHAIN_ID" = "integra-1" ]; then
+    MIN_GAS_PRICES="${MIN_GAS_PRICES:-0airl}"
+elif [ "$CHAIN_ID" = "integra-testnet-1" ]; then
+    # Testnet enforces minimum 1 gwei — 0airl transactions will be rejected
+    MIN_GAS_PRICES="${MIN_GAS_PRICES:-1000000000airl}"
+fi
 
 # Select RPC endpoint based on network
 # RPC = path-based proxy for genesis/peer queries (supports /genesis, /net_info, etc.)
 # STATE_SYNC_RPC = direct host:port for CometBFT state sync light client (no path prefix)
 if [ "$CHAIN_ID" = "integra-1" ]; then
     RPC="https://rpc.integralayer.com"
-    STATE_SYNC_RPC="https://rpc.integralayer.com:443"
+    STATE_SYNC_RPC="https://rpc.integralayer.com:443,https://rpc.integralayer.com:443"
     EVM_CHAIN_ID=26217
 elif [ "$CHAIN_ID" = "integra-testnet-1" ]; then
     RPC="https://ormos.integralayer.com/cometbft"
@@ -23,24 +31,53 @@ else
     exit 1
 fi
 
+# Allow re-initialization of a corrupted or stale node
+if [ "$FORCE_INIT" = "true" ] && [ -f "$HOME_DIR/config/config.toml" ]; then
+    echo "==> FORCE_INIT=true — removing existing configuration for re-initialization..."
+    rm -rf "$HOME_DIR/config" "$HOME_DIR/data"
+fi
+
 # Initialize if not already done
 if [ ! -f "$HOME_DIR/config/config.toml" ]; then
     echo "==> Initializing node with moniker: $MONIKER, chain-id: $CHAIN_ID"
     intgd init "$MONIKER" --chain-id "$CHAIN_ID" --home "$HOME_DIR"
 
-    # Download unmodified genesis from RPC (hash must match network exactly)
+    # Download genesis from RPC — fail fast if download or parse fails
     echo "==> Downloading genesis from $RPC ..."
-    curl -sf "$RPC/genesis" | jq '.result.genesis' > "$HOME_DIR/config/genesis.json"
-    echo "==> Genesis downloaded (initial_height=$(jq -r .initial_height "$HOME_DIR/config/genesis.json"))"
+    GENESIS_TMP=$(mktemp)
+    if ! curl -sf --max-time 30 "$RPC/genesis" > "$GENESIS_TMP"; then
+        echo "ERROR: Failed to download genesis from $RPC/genesis"
+        echo "Check network connectivity and RPC endpoint availability."
+        rm -f "$GENESIS_TMP"
+        exit 1
+    fi
+
+    if ! jq -e '.result.genesis.chain_id' "$GENESIS_TMP" > /dev/null 2>&1; then
+        echo "ERROR: Downloaded genesis is not valid JSON or missing chain_id."
+        echo "The RPC endpoint may be returning an error. Raw response (first 500 chars):"
+        head -c 500 "$GENESIS_TMP"
+        rm -f "$GENESIS_TMP"
+        exit 1
+    fi
+
+    jq '.result.genesis' "$GENESIS_TMP" > "$HOME_DIR/config/genesis.json"
+    rm -f "$GENESIS_TMP"
+
+    GENESIS_CHAIN_ID=$(jq -r '.chain_id' "$HOME_DIR/config/genesis.json")
+    if [ "$GENESIS_CHAIN_ID" != "$CHAIN_ID" ]; then
+        echo "ERROR: Genesis chain_id '$GENESIS_CHAIN_ID' does not match CHAIN_ID '$CHAIN_ID'"
+        exit 1
+    fi
+    echo "==> Genesis downloaded (chain_id=$GENESIS_CHAIN_ID, initial_height=$(jq -r .initial_height "$HOME_DIR/config/genesis.json"))"
 
     # Auto-discover persistent peers from network
     echo "==> Discovering persistent peers..."
-    PEERS="$(curl -sf "$RPC/net_info" | jq -r '.result.peers[] | .node_info.id + "@" + .remote_ip + ":26656"' | head -5 | paste -sd, || true)"
+    PEERS="$(curl -sf --max-time 15 "$RPC/net_info" | jq -r '.result.peers[] | .node_info.id + "@" + .remote_ip + ":26656"' | head -5 | paste -sd, || true)"
     if [ -n "$PEERS" ]; then
         sed -i "s/persistent_peers = \"\"/persistent_peers = \"$PEERS\"/" "$HOME_DIR/config/config.toml"
         echo "==> Peers set: $PEERS"
     else
-        echo "==> Warning: Could not auto-discover peers. Set PEERS env var or edit config.toml manually."
+        echo "==> Warning: Could not auto-discover peers. Set PEERS_OVERRIDE env var or edit config.toml manually."
     fi
 
     # Override peers if explicitly provided
@@ -65,20 +102,29 @@ if [ ! -f "$HOME_DIR/config/config.toml" ]; then
     # Configure state sync (enabled by default — block replay fails if binary differs from genesis version)
     if [ "$STATE_SYNC" = "true" ]; then
         echo "==> Configuring state sync from $RPC ..."
-        LATEST_HEIGHT=$(curl -sf "$RPC/status" | jq -r '.result.sync_info.latest_block_height')
-        TRUST_HEIGHT=$((LATEST_HEIGHT - 2000))
-        TRUST_HASH=$(curl -sf "$RPC/block?height=$TRUST_HEIGHT" | jq -r '.result.block_id.hash')
-
-        if [ -n "$TRUST_HASH" ] && [ "$TRUST_HASH" != "null" ]; then
-            sed -i 's/enable = false/enable = true/' "$HOME_DIR/config/config.toml"
-            sed -i "s|rpc_servers = \"\"|rpc_servers = \"${STATE_SYNC_RPC}\"|" "$HOME_DIR/config/config.toml"
-            sed -i "s/trust_height = 0/trust_height = $TRUST_HEIGHT/" "$HOME_DIR/config/config.toml"
-            sed -i "s/trust_hash = \"\"/trust_hash = \"$TRUST_HASH\"/" "$HOME_DIR/config/config.toml"
-            sed -i 's/trust_period = "168h0m0s"/trust_period = "336h0m0s"/' "$HOME_DIR/config/config.toml"
-            echo "==> State sync enabled (trust_height=$TRUST_HEIGHT, trust_hash=$TRUST_HASH)"
+        LATEST_HEIGHT=$(curl -sf --max-time 15 "$RPC/status" | jq -r '.result.sync_info.latest_block_height' || echo "")
+        if [ -z "$LATEST_HEIGHT" ] || [ "$LATEST_HEIGHT" = "null" ]; then
+            echo "==> Warning: Could not fetch latest block height. Disabling state sync, falling back to block replay."
+            echo "==> This is normal if the network is new or snapshots aren't available yet."
+            STATE_SYNC="false"
         else
-            echo "==> Warning: Could not fetch trust hash, falling back to block sync"
+            TRUST_HEIGHT=$((LATEST_HEIGHT - 2000))
+            TRUST_HASH=$(curl -sf --max-time 15 "$RPC/block?height=$TRUST_HEIGHT" | jq -r '.result.block_id.hash' || echo "")
+
+            if [ -n "$TRUST_HASH" ] && [ "$TRUST_HASH" != "null" ]; then
+                sed -i 's/enable = false/enable = true/' "$HOME_DIR/config/config.toml"
+                sed -i "s|rpc_servers = \"\"|rpc_servers = \"${STATE_SYNC_RPC}\"|" "$HOME_DIR/config/config.toml"
+                sed -i "s/trust_height = 0/trust_height = $TRUST_HEIGHT/" "$HOME_DIR/config/config.toml"
+                sed -i "s/trust_hash = \"\"/trust_hash = \"$TRUST_HASH\"/" "$HOME_DIR/config/config.toml"
+                sed -i 's/trust_period = "168h0m0s"/trust_period = "336h0m0s"/' "$HOME_DIR/config/config.toml"
+                echo "==> State sync enabled (trust_height=$TRUST_HEIGHT, trust_hash=$TRUST_HASH)"
+            else
+                echo "==> Warning: Could not fetch trust hash at height $TRUST_HEIGHT. Disabling state sync, falling back to block replay."
+                echo "==> This can happen if the network doesn't have snapshots enabled or the block was pruned."
+            fi
         fi
+    else
+        echo "==> State sync disabled (STATE_SYNC=false). Node will replay all blocks from genesis."
     fi
 
     echo "==> Initialization complete!"

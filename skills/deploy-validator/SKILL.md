@@ -38,10 +38,10 @@ git clone https://github.com/Integra-layer/validator-skill.git
 cd validator-skill
 
 # Mainnet
-docker compose -f templates/docker/docker-compose.mainnet.yml up -d
+docker compose -f docker-compose.mainnet.yml up -d
 
 # Testnet
-docker compose -f templates/docker/docker-compose.testnet.yml up -d
+docker compose -f docker-compose.testnet.yml up -d
 ```
 
 First build compiles `intgd` from source (~5 min). The container automatically:
@@ -57,16 +57,17 @@ First build compiles `intgd` from source (~5 min). The container automatically:
 Override environment variables:
 
 ```bash
-MONIKER=my-validator CHAIN_ID=integra-1 docker compose -f templates/docker/docker-compose.mainnet.yml up -d
+MONIKER=my-validator CHAIN_ID=integra-1 docker compose -f docker-compose.mainnet.yml up -d
 ```
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `CHAIN_ID` | `integra-1` | Chain ID |
 | `MONIKER` | `my-integra-validator` | Node display name |
-| `MIN_GAS_PRICES` | `0airl` | Minimum gas price |
+| `MIN_GAS_PRICES` | `0airl` (mainnet), `1000000000airl` (testnet) | Minimum gas price |
 | `STATE_SYNC` | `true` | Use state sync instead of block replay |
 | `PEERS_OVERRIDE` | — | Manual peer list |
+| `FORCE_INIT` | `false` | Set `true` to wipe config and re-initialize |
 
 ### Step 3: Wait for Sync
 
@@ -298,6 +299,18 @@ curl -s 'http://localhost:1317/cosmos/staking/v1beta1/validators?status=BOND_STA
 - [ ] HTTPS reverse proxy set up (see `setup-caddy` skill)
 - [ ] Monitoring page deployed (see `generate-connect-page` skill)
 
+## Docker Troubleshooting
+
+| Problem | Cause | Fix |
+|---------|-------|-----|
+| Still seeing old error after `git pull` | Docker cached old image layers | `docker compose -f docker-compose.testnet.yml build --no-cache && docker compose -f docker-compose.testnet.yml up -d` |
+| "State sync: Discovering snapshots" forever | Seed nodes may not have snapshots enabled | Set `STATE_SYNC=false` in compose env and restart — node will replay blocks from genesis instead |
+| Container exits immediately | Genesis download or init failed | Check logs: `docker logs integra-testnet`. Common cause: network issue reaching RPC endpoint |
+| "Wrong directory" or build context error | Running compose from wrong directory | Run from **repo root**: `cd validator-skill && docker compose -f docker-compose.testnet.yml up -d` |
+| Corrupted init / want to start fresh | Previous init left bad state | Set `FORCE_INIT=true` in compose env to wipe config and re-initialize. **Warning**: deletes existing chain data |
+| Testnet tx rejected with "insufficient fees" | Default gas price too low | Testnet requires minimum `1000000000airl` (1 gwei). The testnet compose file sets this by default |
+| Container healthy but no peers | Firewall blocking P2P port | Ensure port `26656/tcp` is open. Check: `docker exec integra-testnet curl -s localhost:26657/net_info \| jq .result.n_peers` |
+
 ## Common Gotchas
 
 | Issue | Fix |
@@ -306,6 +319,7 @@ curl -s 'http://localhost:1317/cosmos/staking/v1beta1/validators?status=BOND_STA
 | No peers / handshake failure | Add `--chain-id` to `intgd start` |
 | Wrong binary | Build from `Integra-layer/evm`, NOT `chain-core` |
 | Token denom confusion | It's **IRL** / `airl`, NOT ILR/ailr |
+| Testnet min gas price | Testnet requires `1000000000airl` (1 gwei), NOT `0airl` |
 
 ## Cross-References
 

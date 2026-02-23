@@ -1,0 +1,8 @@
+# Convenience wrapper — run from repo root:
+#   docker compose -f docker-compose.mainnet.yml up -d
+#
+# Custom moniker:
+#   MONIKER=mynode docker compose -f docker-compose.mainnet.yml up -d
+
+include:
+  - templates/docker/docker-compose.mainnet.yml

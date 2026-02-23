@@ -2,12 +2,6 @@
 
 A Claude Code plugin for deploying, operating, and monitoring [Integralayer](https://integralayer.com) blockchain validator nodes.
 
-## Install
-
-```bash
-claude --plugin-dir /path/to/validator-skill
-```
-
 ## Skills
 
 | Skill | Description |
@@ -17,38 +11,69 @@ claude --plugin-dir /path/to/validator-skill
 | **setup-caddy** | HTTPS reverse proxy with auto-TLS |
 | **generate-connect-page** | Scaffold a validator monitoring landing page |
 
-## Quick Examples
+## Quick Start (Docker)
 
+No Claude Code required — run a validator node with Docker in minutes:
+
+```bash
+# Clone the repo
+git clone https://github.com/Integra-layer/validator-skill.git
+cd validator-skill
+
+# Testnet
+docker compose -f docker-compose.testnet.yml up -d
+
+# Mainnet
+docker compose -f docker-compose.mainnet.yml up -d
+
+# Check sync progress (wait for catching_up: false)
+docker exec integra-testnet intgd status | jq '.sync_info.catching_up'
+
+# Follow logs
+docker logs -f integra-testnet
 ```
-# Deploy a validator (Docker or bare metal)
-> Use the deploy-validator skill to set up a mainnet validator
 
-# Check validator status
-> Use validator-ops to check my validator's signing status
+> **Custom moniker**: `MONIKER=mynode docker compose -f docker-compose.testnet.yml up -d`
 
-# Set up HTTPS for RPC endpoints
-> Use setup-caddy to configure HTTPS for my validator
+> **After updating**: `git pull && docker compose -f docker-compose.testnet.yml build --no-cache && docker compose -f docker-compose.testnet.yml up -d`
 
-# Generate a connect page like integra-connect.vercel.app
-> Use generate-connect-page for my validator at mynode.integralayer.com
+> **Requires**: Docker 20.10+ with Compose V2 (`docker compose`, NOT `docker-compose` with hyphen)
+
+For detailed setup including bare-metal and validator creation, see [`skills/deploy-validator/SKILL.md`](skills/deploy-validator/SKILL.md).
+
+## Claude Code Plugin Usage
+
+If using Claude Code, install the plugin for guided deployment and operations:
+
+```bash
+claude --plugin-dir /path/to/validator-skill
 ```
+
+| Skill | Description |
+|-------|-------------|
+| **deploy-validator** | Deploy a validator node on any server — Docker or bare metal |
+| **validator-ops** | Day-to-day operations — status, unjail, delegate, backup, upgrade |
+| **setup-caddy** | HTTPS reverse proxy with auto-TLS |
+| **generate-connect-page** | Scaffold a validator monitoring landing page |
 
 ## Project Structure
 
 ```
 validator-skill/
-├── .claude-plugin/plugin.json    # Plugin manifest
-├── skills/                       # 4 skills (each with SKILL.md)
+├── docker-compose.testnet.yml   # Run from repo root (wraps templates/docker/)
+├── docker-compose.mainnet.yml   # Run from repo root (wraps templates/docker/)
+├── .claude-plugin/plugin.json   # Plugin manifest
+├── skills/                      # 4 skills (each with SKILL.md)
 │   ├── deploy-validator/
 │   ├── validator-ops/
 │   ├── setup-caddy/
 │   └── generate-connect-page/
-├── references/                   # Shared reference docs
+├── references/                  # Shared reference docs
 │   ├── network-config.md
 │   ├── security-hardening.md
 │   └── troubleshooting.md
-├── templates/                    # Reusable config templates
-│   ├── docker/
+├── templates/                   # Reusable config templates
+│   ├── docker/                  # Dockerfile, entrypoint, compose files
 │   ├── systemd/
 │   ├── caddy/
 │   ├── connect-page/

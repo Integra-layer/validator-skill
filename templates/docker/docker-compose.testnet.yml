@@ -1,12 +1,21 @@
+# Integralayer Testnet Validator (Docker)
+#
+# Usage:  docker compose -f templates/docker/docker-compose.testnet.yml up -d
+#   (or from repo root: docker compose -f docker-compose.testnet.yml up -d)
+#
+# Custom moniker: MONIKER=mynode docker compose -f ... up -d
+# Rebuild after git pull: docker compose -f ... build --no-cache && docker compose -f ... up -d
+# Requires: Docker 20.10+ with Compose V2 (docker compose, NOT docker-compose)
+
 services:
   integra-node:
     build: .
     container_name: integra-testnet
     environment:
       - CHAIN_ID=integra-testnet-1
-      - MONIKER=my-integra-testnet
-      - MIN_GAS_PRICES=0airl
-      - STATE_SYNC=true
+      - MONIKER=${MONIKER:-my-integra-testnet}
+      - MIN_GAS_PRICES=1000000000airl  # 1 gwei — testnet minimum
+      - STATE_SYNC=${STATE_SYNC:-true}
     ports:
       - "26656:26656"  # P2P
       - "26657:26657"  # RPC

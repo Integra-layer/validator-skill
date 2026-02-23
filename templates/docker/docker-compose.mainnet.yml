@@ -1,12 +1,21 @@
+# Integralayer Mainnet Validator (Docker)
+#
+# Usage:  docker compose -f templates/docker/docker-compose.mainnet.yml up -d
+#   (or from repo root: docker compose -f docker-compose.mainnet.yml up -d)
+#
+# Custom moniker: MONIKER=mynode docker compose -f ... up -d
+# Rebuild after git pull: docker compose -f ... build --no-cache && docker compose -f ... up -d
+# Requires: Docker 20.10+ with Compose V2 (docker compose, NOT docker-compose)
+
 services:
   integra-node:
     build: .
     container_name: integra-mainnet
     environment:
       - CHAIN_ID=integra-1
-      - MONIKER=my-integra-validator
-      - MIN_GAS_PRICES=0airl
-      - STATE_SYNC=true
+      - MONIKER=${MONIKER:-my-integra-validator}
+      - MIN_GAS_PRICES=${MIN_GAS_PRICES:-0airl}
+      - STATE_SYNC=${STATE_SYNC:-true}
     ports:
       - "26656:26656"  # P2P
       - "26657:26657"  # RPC
