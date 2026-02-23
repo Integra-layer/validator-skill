@@ -20,7 +20,7 @@ fi
 # STATE_SYNC_RPC = direct host:port for CometBFT state sync light client (no path prefix)
 if [ "$CHAIN_ID" = "integra-1" ]; then
     RPC="https://rpc.integralayer.com"
-    STATE_SYNC_RPC="https://rpc.integralayer.com:443,https://rpc.integralayer.com:443"
+    STATE_SYNC_RPC="https://rpc.integralayer.com:443,http://3.92.110.107:26657"
     EVM_CHAIN_ID=26217
 elif [ "$CHAIN_ID" = "integra-testnet-1" ]; then
     RPC="https://ormos.integralayer.com/cometbft"
