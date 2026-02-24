@@ -6,7 +6,10 @@ MONIKER="${MONIKER:-my-integra-validator}"
 HOME_DIR="/root/.intgd"
 STATE_SYNC="${STATE_SYNC:-true}"
 FORCE_INIT="${FORCE_INIT:-false}"
-AUTO_HEAL="${AUTO_HEAL:-true}"
+# AUTO_HEAL: resyncs nodes that fall >5000 blocks behind via state sync.
+# Preserves validator keys and state. Skips if chain is halted.
+# Set AUTO_HEAL=false for validator nodes in production to avoid unexpected resets.
+AUTO_HEAL="${AUTO_HEAL:-false}"
 SNAPSHOT_INTERVAL="${SNAPSHOT_INTERVAL:-1000}"
 
 # Set sensible gas price defaults per network
@@ -116,10 +119,15 @@ if [ "$AUTO_HEAL" = "true" ] && [ -f "$HOME_DIR/data/priv_validator_state.json" 
                     echo "==> Chain appears halted (last block ${BLOCK_AGE}s ago). Nothing to heal — waiting for consensus."
                 elif [ "$HEIGHT_DIFF" -gt 5000 ]; then
                     echo "==> Node is ${HEIGHT_DIFF} blocks behind. Auto-healing with state sync..."
-                    echo "==> Preserving validator keys, resetting data..."
-                    # Back up validator state
+                    echo "==> Preserving validator keys and state, resetting chain data..."
+                    # Back up validator state to prevent double-signing
                     cp "$HOME_DIR/data/priv_validator_state.json" /tmp/priv_validator_state.json.bak
-                    intgd tendermint unsafe-reset-all --home "$HOME_DIR" --keep-addr-book
+                    # Back up validator key if it exists (safety net)
+                    if [ -f "$HOME_DIR/config/priv_validator_key.json" ]; then
+                        cp "$HOME_DIR/config/priv_validator_key.json" /tmp/priv_validator_key.json.bak
+                        echo "==> Validator key backed up to /tmp/"
+                    fi
+                    intgd comet unsafe-reset-all --home "$HOME_DIR" --keep-addr-book
                     # Restore validator state
                     cp /tmp/priv_validator_state.json.bak "$HOME_DIR/data/priv_validator_state.json"
                     # Re-configure state sync with fresh trust height
@@ -133,9 +141,38 @@ if [ "$AUTO_HEAL" = "true" ] && [ -f "$HOME_DIR/data/priv_validator_state.json" 
     fi
 fi
 
-# Allow re-initialization of a corrupted or stale node
+# ─── FORCE_INIT: deprecated and dangerous ──────────────────────────────────
+# WARNING: FORCE_INIT wipes ALL validator keys and chain data.
+# This was the root cause of the Feb 24 2026 chain halt.
+# Use only for non-validator full nodes when you explicitly need a fresh start.
 if [ "$FORCE_INIT" = "true" ] && [ -f "$HOME_DIR/config/config.toml" ]; then
-    echo "==> FORCE_INIT=true — removing existing configuration for re-initialization..."
+    echo ""
+    echo "╔══════════════════════════════════════════════════════════════════╗"
+    echo "║  ⚠  FORCE_INIT=true — THIS WILL DESTROY ALL NODE DATA         ║"
+    echo "║                                                                 ║"
+    echo "║  This deletes:                                                  ║"
+    echo "║    • priv_validator_key.json (validator signing key)            ║"
+    echo "║    • All chain data and state                                   ║"
+    echo "║    • All configuration files                                    ║"
+    echo "║                                                                 ║"
+    echo "║  If this is a VALIDATOR node, you will lose your identity       ║"
+    echo "║  and the chain may halt if you hold significant voting power.   ║"
+    echo "╚══════════════════════════════════════════════════════════════════╝"
+    echo ""
+
+    # Check if validator key exists — refuse to wipe without backup confirmation
+    if [ -f "$HOME_DIR/config/priv_validator_key.json" ]; then
+        if [ "${FORCE_INIT_I_HAVE_BACKUPS:-}" != "true" ]; then
+            echo "ERROR: Validator signing key detected at $HOME_DIR/config/priv_validator_key.json"
+            echo "  Refusing to wipe without backup confirmation."
+            echo "  If you have backed up your keys, set FORCE_INIT_I_HAVE_BACKUPS=true"
+            echo "  If this is NOT a validator, remove the key file first."
+            exit 1
+        fi
+        echo "==> FORCE_INIT_I_HAVE_BACKUPS=true — proceeding with backup-confirmed wipe..."
+    fi
+
+    echo "==> Removing existing configuration for re-initialization..."
     rm -rf "$HOME_DIR/config" "$HOME_DIR/data"
 fi
 

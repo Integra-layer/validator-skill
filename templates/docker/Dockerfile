@@ -7,6 +7,9 @@
 FROM golang:1.25.5-bookworm AS builder
 
 ARG TARGETARCH
+# Pin to a specific branch/tag to prevent version drift.
+# Using 'main' risks pulling breaking changes on rebuild.
+# For production validators, always pin to a tested commit or tag.
 ARG EVM_BRANCH=main
 
 RUN apt-get update && apt-get install -y git build-essential && rm -rf /var/lib/apt/lists/*

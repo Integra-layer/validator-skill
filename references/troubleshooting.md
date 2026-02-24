@@ -442,6 +442,174 @@ curl -s http://localhost:8545 -X POST -H "Content-Type: application/json" \
   --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' | jq
 ```
 
+## Chain Halt Recovery
+
+A chain halt occurs when >33% of voting power goes offline, preventing CometBFT consensus (which requires >66.67%). This section covers both diagnosis and recovery.
+
+### Diagnosing a Chain Halt
+
+```bash
+# Check if the chain is producing blocks
+curl -s http://localhost:26657/status | jq '{
+  height: .result.sync_info.latest_block_height,
+  time: .result.sync_info.latest_block_time,
+  catching_up: .result.sync_info.catching_up
+}'
+
+# Compare latest block time to current time — if gap > 60s, chain is halted or node is behind
+# Check from a public RPC to rule out local issues
+curl -s https://rpc.integralayer.com/status | jq '.result.sync_info.latest_block_time'
+
+# Check voting power distribution — identify who is offline
+curl -s https://api.integralayer.com/cosmos/staking/v1beta1/validators?status=BOND_STATUS_BONDED | \
+  jq '[.validators[] | {moniker: .description.moniker, tokens: .tokens, jailed: .jailed}] | sort_by(-.tokens | tonumber)'
+```
+
+### Recovery Option A: Key Recovery (Mainnet)
+
+If the offline validator's signing key can be recovered:
+
+```bash
+# 1. Locate the validator key backup
+# It should be at one of these locations:
+ls ~/.integra-backups/priv_validator_key.json
+ls /root/.integra-backups/priv_validator_key.json
+
+# 2. Restore the key to the node
+sudo systemctl stop intgd
+cp /path/to/backup/priv_validator_key.json ~/.intgd/config/priv_validator_key.json
+
+# 3. Ensure the correct binary version is installed
+intgd version --long
+
+# 4. Restart — the node will rejoin consensus and the chain will resume
+sudo systemctl start intgd
+
+# 5. Verify blocks are being produced again
+watch -n 2 'curl -sf http://localhost:26657/status | jq .result.sync_info.latest_block_height'
+```
+
+### Recovery Option B: Genesis Restart (Testnet)
+
+If the key is lost or the validator must be removed:
+
+```bash
+# 1. Export the current chain state from any running (but halted) node
+intgd export --home ~/.intgd > genesis_export.json
+
+# 2. Edit the exported genesis to remove the offline validator
+# Replace <valoper_address> with the offline validator's operator address
+jq 'del(.app_state.staking.validators[] | select(.operator_address == "<valoper_address>"))' \
+  genesis_export.json > genesis_clean.json
+
+# Also remove their last_validator_powers entry
+jq 'del(.app_state.staking.last_validator_powers[] | select(.address == "<valoper_address>"))' \
+  genesis_clean.json > genesis_final.json
+
+# 3. Set a new initial height (current height + 1)
+CURRENT_HEIGHT=$(jq -r '.initial_height // "1"' genesis_export.json)
+NEW_HEIGHT=$((CURRENT_HEIGHT + 1))
+jq --arg h "$NEW_HEIGHT" '.initial_height = $h' genesis_final.json > genesis_restart.json
+
+# 4. Distribute to all remaining validators, reset their data, and restart
+# On each node:
+sudo systemctl stop intgd
+cp genesis_restart.json ~/.intgd/config/genesis.json
+intgd comet unsafe-reset-all --keep-addr-book --home ~/.intgd
+sudo systemctl start intgd
+```
+
+### Preventing Future Chain Halts
+
+1. **Back up validator keys immediately**: `cp ~/.intgd/config/priv_validator_key.json /secure/offsite/backup/`
+2. **Never use FORCE_INIT on validators**: It wipes signing keys on restart
+3. **Pin binary versions**: Use exact commit hashes, not `latest` or `main`
+4. **Distribute voting power**: No single validator should hold >33%
+5. **Monitor block production**: Alert if no new block in >30 seconds
+
+## Monitoring & Alerting
+
+### Block Production Monitor (cron script)
+
+Save as `/usr/local/bin/check-block-production.sh` and add to crontab:
+
+```bash
+#!/bin/bash
+# Check if the node is producing blocks. Alert if stale for >60 seconds.
+THRESHOLD_SECONDS=60
+STATUS=$(curl -sf --max-time 5 http://localhost:26657/status)
+if [ -z "$STATUS" ]; then
+    echo "ALERT: Node RPC unreachable" >&2
+    exit 1
+fi
+
+BLOCK_TIME=$(echo "$STATUS" | jq -r '.result.sync_info.latest_block_time')
+BLOCK_EPOCH=$(date -d "$BLOCK_TIME" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%S" "${BLOCK_TIME%%.*}" +%s 2>/dev/null)
+NOW_EPOCH=$(date +%s)
+AGE=$((NOW_EPOCH - BLOCK_EPOCH))
+
+if [ "$AGE" -gt "$THRESHOLD_SECONDS" ]; then
+    echo "ALERT: Last block was ${AGE}s ago (threshold: ${THRESHOLD_SECONDS}s)" >&2
+    echo "Height: $(echo "$STATUS" | jq -r '.result.sync_info.latest_block_height')" >&2
+    exit 1
+fi
+echo "OK: Block age ${AGE}s, height $(echo "$STATUS" | jq -r '.result.sync_info.latest_block_height')"
+```
+
+```bash
+# Add to crontab (runs every minute)
+chmod +x /usr/local/bin/check-block-production.sh
+echo "* * * * * /usr/local/bin/check-block-production.sh >> /var/log/block-monitor.log 2>&1" | crontab -
+```
+
+### Validator Signing Health Check
+
+```bash
+#!/bin/bash
+# Check missed blocks and alert if approaching jail threshold
+VALIDATOR_PUBKEY=$(intgd comet show-validator)
+SIGNING_INFO=$(intgd query slashing signing-info "$VALIDATOR_PUBKEY" --chain-id integra-1 -o json 2>/dev/null)
+
+MISSED=$(echo "$SIGNING_INFO" | jq -r '.val_signing_info.missed_blocks_counter // "0"')
+JAILED=$(echo "$SIGNING_INFO" | jq -r '.val_signing_info.jailed_until // "1970-01-01"')
+
+# Default signed_blocks_window is 10000, slash at 50% missed
+WINDOW=10000
+THRESHOLD=$((WINDOW / 2))
+
+if [ "$MISSED" -gt "$((THRESHOLD * 80 / 100))" ]; then
+    echo "CRITICAL: Missed $MISSED/$WINDOW blocks — approaching jail threshold ($THRESHOLD)" >&2
+elif [ "$MISSED" -gt "$((THRESHOLD * 50 / 100))" ]; then
+    echo "WARNING: Missed $MISSED/$WINDOW blocks" >&2
+else
+    echo "OK: Missed $MISSED/$WINDOW blocks"
+fi
+```
+
+### Key Backup Verification
+
+```bash
+#!/bin/bash
+# Verify validator key backups exist and match the running node
+BACKUP_DIR="${1:-/root/.integra-backups}"
+
+if [ ! -f "$BACKUP_DIR/priv_validator_key.json" ]; then
+    echo "CRITICAL: No validator key backup at $BACKUP_DIR/priv_validator_key.json" >&2
+    exit 1
+fi
+
+# Compare backup key address with active key
+ACTIVE_ADDR=$(jq -r '.address' ~/.intgd/config/priv_validator_key.json 2>/dev/null)
+BACKUP_ADDR=$(jq -r '.address' "$BACKUP_DIR/priv_validator_key.json" 2>/dev/null)
+
+if [ "$ACTIVE_ADDR" != "$BACKUP_ADDR" ]; then
+    echo "WARNING: Backup key address ($BACKUP_ADDR) does not match active key ($ACTIVE_ADDR)" >&2
+    exit 1
+fi
+
+echo "OK: Validator key backup verified (address: $ACTIVE_ADDR)"
+```
+
 ## When to Seek Help
 
 - **Tombstoned validator**: Cannot be unjailed; needs community guidance on next steps
