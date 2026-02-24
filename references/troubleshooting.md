@@ -111,7 +111,7 @@ make install
 intgd version
 
 # 4. If state is corrupted, you may need to reset
-intgd tendermint unsafe-reset-all --keep-addr-book
+intgd comet unsafe-reset-all --keep-addr-book
 
 # 5. Re-download genesis if needed and resync
 # Or restore from a snapshot
@@ -136,7 +136,7 @@ curl -L https://rpc.integralayer.com/genesis | jq '.result.genesis' > ~/.intgd/c
 sha256sum ~/.intgd/config/genesis.json
 
 # Reset state (keep address book)
-intgd tendermint unsafe-reset-all --keep-addr-book
+intgd comet unsafe-reset-all --keep-addr-book
 
 # Restart
 sudo systemctl restart intgd
@@ -211,7 +211,7 @@ grep evm-chain-id ~/.intgd/config/app.toml
 intgd query staking validator <validator_operator_address> | grep jailed
 
 # Check signing info (missed blocks, tombstoned status)
-intgd query slashing signing-info $(intgd tendermint show-validator)
+intgd query slashing signing-info $(intgd comet show-validator)
 ```
 
 **Unjail** (only works for downtime, NOT for double signing):
@@ -290,7 +290,7 @@ pruning = "default"            # keep recent + every 500th
 
 ```bash
 # If pruning alone isn't enough, compact the database
-intgd tendermint compact-goleveldb
+intgd comet compact-goleveldb
 
 # Consider expanding the EBS volume (see aws-deployment-notes.md)
 ```
@@ -422,7 +422,7 @@ intgd status | jq '{height: .SyncInfo.latest_block_height, time: .SyncInfo.lates
 curl -s http://localhost:26657/net_info | jq '.result.n_peers'
 
 # Validator signing status
-intgd query slashing signing-info $(intgd tendermint show-validator) --chain-id integra-1
+intgd query slashing signing-info $(intgd comet show-validator) --chain-id integra-1
 
 # Check validator in active set
 intgd query staking validators --status bonded --chain-id integra-1 | grep -A5 <your_moniker>

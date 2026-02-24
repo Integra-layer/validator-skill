@@ -65,7 +65,7 @@ curl -s http://localhost:26657/net_info | jq '.result.n_peers'
 curl -s http://localhost:26657/net_info | jq -r '.result.peers[] | "\(.node_info.id)@\(.remote_ip):\(.node_info.listen_addr | split(":") | last)"'
 
 # Get your own node ID
-intgd tendermint show-node-id --home $HOME
+intgd comet show-node-id --home $HOME
 
 # Check a specific peer's status
 curl -s http://<peer_ip>:26657/status | jq '.result.node_info'

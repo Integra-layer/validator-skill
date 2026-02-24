@@ -153,7 +153,7 @@ sha256sum ~/.intgd/config/genesis.json
 
 ```bash
 # Get your own node ID
-intgd tendermint show-node-id
+intgd comet show-node-id
 
 # Get a peer's node ID (from their RPC)
 curl -s http://<peer_ip>:26657/status | jq -r '.result.node_info.id'
