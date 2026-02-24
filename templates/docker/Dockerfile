@@ -4,7 +4,7 @@
 # =============================================================================
 # Stage 1: Build intgd binary from source
 # =============================================================================
-FROM golang:1.25-bookworm AS builder
+FROM golang:1.25.5-bookworm AS builder
 
 ARG TARGETARCH
 ARG EVM_BRANCH=main
