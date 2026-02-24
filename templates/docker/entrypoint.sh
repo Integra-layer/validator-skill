@@ -24,7 +24,7 @@ if [ "$CHAIN_ID" = "integra-1" ]; then
     EVM_CHAIN_ID=26217
 elif [ "$CHAIN_ID" = "integra-testnet-1" ]; then
     RPC="https://ormos.integralayer.com/cometbft"
-    STATE_SYNC_RPC="http://167.71.173.21:26657,http://143.198.25.105:26657"
+    STATE_SYNC_RPC="http://13.218.88.209:26657,http://167.71.173.21:26657,http://143.198.25.105:26657"
     EVM_CHAIN_ID=26218
 else
     echo "ERROR: Unknown CHAIN_ID '$CHAIN_ID'. Use 'integra-1' (mainnet) or 'integra-testnet-1' (testnet)."
